@@ -16,6 +16,9 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
+    const isAdminInitiated = messages.some(msg => msg.sender_name === 'Administrador');
+    const isChatBlocked = currentUser && currentUser.role === 'farmacia' && !isAdminInitiated;
+
     // 1. Cargar mensajes y suscribirse a cambios en tiempo real
     useEffect(() => {
         if (!ticket) return;
@@ -138,6 +141,11 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
         const hasImage = compressedBlob !== null;
 
         if (!msgText && !hasImage) return;
+
+        if (isChatBlocked) {
+            alert('No puedes enviar mensajes hasta que el administrador inicie la conversación.');
+            return;
+        }
 
         setIsSending(true);
 
@@ -303,6 +311,27 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                 <div ref={messagesEndRef} />
             </div>
 
+            {isChatBlocked && (
+                <div 
+                    className="chat-blocked-banner" 
+                    style={{ 
+                        padding: '10px 16px', 
+                        background: 'rgba(245, 158, 11, 0.1)', 
+                        borderTop: '1px solid var(--border-color)', 
+                        borderBottom: '1px solid var(--border-color)', 
+                        color: 'var(--color-warning)', 
+                        fontSize: '0.85rem', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        fontWeight: '500'
+                    }}
+                >
+                    <i className="fa-solid fa-triangle-exclamation"></i>
+                    <span>Esperando a que el administrador inicie la conversación para poder responder.</span>
+                </div>
+            )}
+
             {/* Input del chat */}
             <form className="chat-input-area" onSubmit={handleSendMessage}>
                 {previewUrl && (
@@ -317,7 +346,11 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                     </div>
                 )}
                 <div className="input-controls">
-                    <label className="btn-attach" title="Adjuntar imagen">
+                    <label 
+                        className={`btn-attach ${isChatBlocked ? 'disabled' : ''}`} 
+                        title={isChatBlocked ? "Chat bloqueado hasta que el administrador responda" : "Adjuntar imagen"}
+                        style={isChatBlocked ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}
+                    >
                         <i className="fa-solid fa-image"></i>
                         <input 
                             type="file" 
@@ -325,17 +358,18 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                             accept="image/*" 
                             className="hidden" 
                             onChange={handleImageSelect}
+                            disabled={isSending || isChatBlocked}
                         />
                     </label>
                     <input 
                         type="text" 
-                        placeholder={isSending ? "Enviando..." : "Escribe un mensaje o pregunta..."} 
+                        placeholder={isChatBlocked ? "Esperando respuesta del administrador..." : (isSending ? "Enviando..." : "Escribe un mensaje o pregunta...")} 
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        disabled={isSending}
+                        disabled={isSending || isChatBlocked}
                         autoComplete="off"
                     />
-                    <button type="submit" className="btn btn-primary" disabled={isSending || (!text.trim() && !compressedBlob)}>
+                    <button type="submit" className="btn btn-primary" disabled={isSending || isChatBlocked || (!text.trim() && !compressedBlob)}>
                         <i className="fa-solid fa-paper-plane"></i>
                     </button>
                 </div>

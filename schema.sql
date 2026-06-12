@@ -129,3 +129,90 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ==========================================
+-- RESTRICCIÓN DE CHAT: LA FARMACIA SOLO RESPONDE SI EL ADMIN INICIA
+-- ==========================================
+CREATE OR REPLACE FUNCTION public.check_message_permission()
+RETURNS trigger AS $$
+DECLARE
+    sender_role TEXT;
+    admin_message_exists BOOLEAN;
+BEGIN
+    -- Obtener el rol del remitente
+    SELECT role INTO sender_role FROM public.profiles WHERE id = NEW.sender_id;
+    
+    -- Si el remitente es de tipo 'farmacia' (no admin)
+    IF sender_role = 'farmacia' THEN
+        -- Verificar si existe algún mensaje anterior de un administrador para este ticket
+        SELECT EXISTS (
+            SELECT 1 FROM public.messages m
+            JOIN public.profiles p ON m.sender_id = p.id
+            WHERE m.ticket_id = NEW.ticket_id AND p.role = 'admin'
+        ) INTO admin_message_exists;
+        
+        -- Si no hay mensaje de admin previo, rechazar el envío
+        IF NOT admin_message_exists THEN
+            RAISE EXCEPTION 'No puedes enviar mensajes en este ticket hasta que el administrador inicie la conversación.';
+        END IF;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_message_inserting
+  BEFORE INSERT ON public.messages
+  FOR EACH ROW EXECUTE FUNCTION public.check_message_permission();
+
+-- ==========================================
+-- SISTEMA DE LLENADO DE BASE DE DATOS (RPC)
+-- ==========================================
+CREATE OR REPLACE FUNCTION public.get_db_size()
+RETURNS json AS $$
+DECLARE
+    db_size_bytes BIGINT;
+    db_limit_bytes BIGINT := 524288000; -- 500 MB en bytes
+    db_percentage NUMERIC;
+    
+    storage_size_bytes BIGINT;
+    storage_limit_bytes BIGINT := 1073741824; -- 1 GB en bytes
+    storage_percentage NUMERIC;
+BEGIN
+    -- 1. Obtener tamaño de base de datos
+    db_size_bytes := pg_database_size(current_database());
+    db_percentage := ROUND((db_size_bytes::numeric / db_limit_bytes::numeric) * 100, 2);
+    
+    -- 2. Obtener tamaño de archivos en storage (todos los buckets)
+    BEGIN
+        SELECT COALESCE(SUM((metadata->>'size')::bigint), 0)
+        INTO storage_size_bytes
+        FROM storage.objects;
+    EXCEPTION WHEN OTHERS THEN
+        storage_size_bytes := 0;
+    END;
+    
+    storage_percentage := ROUND((storage_size_bytes::numeric / storage_limit_bytes::numeric) * 100, 2);
+
+    RETURN json_build_object(
+        'db', json_build_object(
+            'size_bytes', db_size_bytes,
+            'size_pretty', pg_size_pretty(db_size_bytes),
+            'limit_bytes', db_limit_bytes,
+            'limit_pretty', '500 MB',
+            'percentage', db_percentage
+        ),
+        'storage', json_build_object(
+            'size_bytes', storage_size_bytes,
+            'size_pretty', pg_size_pretty(storage_size_bytes),
+            'limit_bytes', storage_limit_bytes,
+            'limit_pretty', '1 GB',
+            'percentage', storage_percentage
+        )
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_db_size() TO authenticated;
+
+

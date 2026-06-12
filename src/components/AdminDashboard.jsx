@@ -13,10 +13,23 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [expandedTicketId, setExpandedTicketId] = useState(null);
+    const [dbStatus, setDbStatus] = useState(null);
 
     useEffect(() => {
         loadTickets();
+        fetchDbSize();
     }, []);
+
+    const fetchDbSize = async () => {
+        try {
+            const { data, error } = await supabase.rpc('get_db_size');
+            if (!error && data) {
+                setDbStatus(data);
+            }
+        } catch (err) {
+            console.error('Error fetching db size:', err);
+        }
+    };
 
     const toggleAccordion = (ticketId) => {
         setExpandedTicketId(expandedTicketId === ticketId ? null : ticketId);
@@ -153,8 +166,98 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                     </div>
                 </div>
 
-                {/* Pill Derecho: Toggle Tema + Logout */}
+                {/* Pill Derecho: DB Status + Toggle Tema + Logout */}
                 <div className="header-controls-pill">
+                    {/* Indicadores de Base de Datos y Storage */}
+                    {dbStatus && (
+                        <>
+                            {/* Base de Datos (Postgres) */}
+                            {(() => {
+                                const dbData = dbStatus.db || dbStatus;
+                                return (
+                                    <div className="db-status-icon-wrap" title="Base de Datos">
+                                        <i
+                                            className="fa-solid fa-database db-status-icon"
+                                            style={{
+                                                color: dbData.percentage > 85
+                                                    ? 'var(--color-danger)'
+                                                    : dbData.percentage > 60
+                                                        ? 'var(--color-warning)'
+                                                        : 'var(--color-success)'
+                                            }}
+                                        ></i>
+                                        {/* Tooltip flotante */}
+                                        <div className="db-tooltip">
+                                            <div className="db-tooltip-title">
+                                                <i className="fa-solid fa-database"></i>
+                                                Base de Datos (500 MB)
+                                            </div>
+                                            <div className="db-tooltip-bar-wrap">
+                                                <div
+                                                    className="db-tooltip-bar-fill"
+                                                    style={{
+                                                        width: `${Math.min(dbData.percentage, 100)}%`,
+                                                        background: dbData.percentage > 85
+                                                            ? 'var(--color-danger)'
+                                                            : dbData.percentage > 60
+                                                                ? 'var(--color-warning)'
+                                                                : 'var(--color-success)'
+                                                    }}
+                                                ></div>
+                                            </div>
+                                            <div className="db-tooltip-meta">
+                                                <span>{dbData.size_pretty} usado</span>
+                                                <span className="db-tooltip-pct">{dbData.percentage}% de {dbData.limit_pretty}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Almacenamiento de Archivos (Storage) */}
+                            {dbStatus.storage && (
+                                <div className="db-status-icon-wrap" title="Almacenamiento de Archivos">
+                                    <i
+                                        className="fa-solid fa-cloud db-status-icon"
+                                        style={{
+                                            color: dbStatus.storage.percentage > 85
+                                                ? 'var(--color-danger)'
+                                                : dbStatus.storage.percentage > 60
+                                                    ? 'var(--color-warning)'
+                                                    : 'var(--color-success)'
+                                        }}
+                                    ></i>
+                                    {/* Tooltip flotante */}
+                                    <div className="db-tooltip">
+                                        <div className="db-tooltip-title">
+                                            <i className="fa-solid fa-cloud"></i>
+                                            Storage de Archivos (1 GB)
+                                        </div>
+                                        <div className="db-tooltip-bar-wrap">
+                                            <div
+                                                className="db-tooltip-bar-fill"
+                                                style={{
+                                                    width: `${Math.min(dbStatus.storage.percentage, 100)}%`,
+                                                    background: dbStatus.storage.percentage > 85
+                                                        ? 'var(--color-danger)'
+                                                        : dbStatus.storage.percentage > 60
+                                                            ? 'var(--color-warning)'
+                                                            : 'var(--color-success)'
+                                                }}
+                                            ></div>
+                                        </div>
+                                        <div className="db-tooltip-meta">
+                                            <span>{dbStatus.storage.size_pretty} usado</span>
+                                            <span className="db-tooltip-pct">{dbStatus.storage.percentage}% de {dbStatus.storage.limit_pretty}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    <div className="header-divider"></div>
+
                     {/* Toggle Animado Pill */}
                     <button
                         className="theme-toggle-track"

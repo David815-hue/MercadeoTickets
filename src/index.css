@@ -730,6 +730,50 @@ textarea:focus {
     color: var(--text-muted);
 }
 
+/* Pill central: estado de base de datos */
+.header-db-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--header-pill-bg, rgba(15, 23, 42, 0.65));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--header-pill-border, rgba(255,255,255,0.10));
+    border-radius: 999px;
+    padding: 6px 14px;
+    box-shadow: var(--header-pill-shadow, 0 4px 20px rgba(0,0,0,0.25));
+    pointer-events: auto;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: var(--transition-smooth);
+    user-select: none;
+}
+.header-db-pill:hover {
+    border-color: rgba(99, 102, 241, 0.35);
+    background: var(--bg-btn-secondary-hover);
+    transform: translateY(-1px);
+    color: var(--text-primary);
+}
+.db-indicator-bar {
+    width: 60px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-left: 2px;
+    display: inline-block;
+}
+[data-theme="light"] .db-indicator-bar {
+    background: rgba(99, 102, 241, 0.08);
+}
+.db-indicator-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.5s ease;
+}
+
 /* Pill derecho: toggle + logout */
 .header-controls-pill {
     display: flex;
@@ -775,7 +819,126 @@ textarea:focus {
     transform: scale(1.05);
 }
 
+/* Indicador de Base de Datos y Tooltip en el Pill Derecho */
+.db-status-icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    color: var(--text-muted);
+}
 
+.db-status-icon-wrap:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+[data-theme="light"] .db-status-icon-wrap:hover {
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.db-status-icon {
+    font-size: 1.05rem;
+    transition: transform 0.2s ease;
+}
+
+.db-status-icon-wrap:hover .db-status-icon {
+    transform: scale(1.1);
+}
+
+/* Elegant DB Tooltip */
+.db-tooltip {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 50%;
+    transform: translateX(50%) translateY(10px);
+    width: 210px;
+    background: var(--header-pill-bg, rgba(15, 23, 42, 0.95));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--header-pill-border, rgba(255, 255, 255, 0.15));
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Tooltip Arrow */
+.db-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    right: 50%;
+    transform: translateX(50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent var(--header-pill-border, rgba(255, 255, 255, 0.15)) transparent;
+}
+
+.db-status-icon-wrap:hover .db-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(50%) translateY(0);
+}
+
+.db-tooltip-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-primary);
+}
+
+.db-tooltip-title i {
+    font-size: 0.85rem;
+}
+
+.db-tooltip-bar-wrap {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+[data-theme="light"] .db-tooltip-bar-wrap {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.db-tooltip-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.db-tooltip-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.db-tooltip-pct {
+    font-weight: 700;
+    color: var(--text-primary);
+}
 
 .dashboard-container {
     display: flex;
