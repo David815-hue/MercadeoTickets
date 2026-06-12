@@ -217,7 +217,7 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
             {/* Cabecera del chat */}
             <div className="chat-header flex-row justify-between align-center">
                 <div className="chat-ticket-info">
-                    <h4>Ticket #{ticket.id.substring(0, 8)}...</h4>
+                    <h4>Ticket {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}</h4>
                     {isAdmin ? (
                         <p><i className="fa-solid fa-hospital"></i> <strong>{ticket.pharmacy_name}</strong> - {new Date(ticket.created_at).toLocaleDateString('es-ES')}</p>
                     ) : (

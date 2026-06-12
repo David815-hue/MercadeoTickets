@@ -20,6 +20,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 -- 3. Crear tabla de tickets
 CREATE TABLE public.tickets (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    ticket_number SERIAL,
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
     pharmacy_name TEXT NOT NULL, -- Ej: PFH001
     description TEXT NOT NULL,

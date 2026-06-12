@@ -234,7 +234,9 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                         {/* Cabecera del acordeón (Muestra descripción en lugar de la fecha) */}
                                         <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>
                                              <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center' }}>
-                                                 <span className="accordion-ticket-id">#{ticket.id.substring(0, 8)}...</span>
+                                                 <span className="accordion-ticket-id">
+                                                     {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}
+                                                 </span>
                                                  {hasUnread && <span className="badge-unread" style={{ marginLeft: '8px', flexShrink: 0 }}>Nuevo Mensaje</span>}
                                                 <span 
                                                     className="accordion-ticket-desc" 
