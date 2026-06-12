@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
 
-export default function PharmacyDashboard({ currentUser, onLogout }) {
+
+
+export default function PharmacyDashboard({ currentUser, onLogout, currentTheme, onToggleTheme }) {
     const [tickets, setTickets] = useState([]);
     const [description, setDescription] = useState('');
     const [activeTicket, setActiveTicket] = useState(null);
@@ -20,7 +22,7 @@ export default function PharmacyDashboard({ currentUser, onLogout }) {
         loadTickets();
     }, []);
 
-    // Suscribirse a mensajes globales para capturar alertas en tiempo real
+    // Suscribirse a mensajes globales para capturar alertas en tiempo real (mensajes nuevos y cambios de estado)
     useEffect(() => {
         const channel = supabase.channel('pharmacy_global_chat_notifications')
             .on('postgres_changes', {
@@ -30,7 +32,7 @@ export default function PharmacyDashboard({ currentUser, onLogout }) {
             }, (payload) => {
                 const newMsg = payload.new;
                 
-                // Si el mensaje viene del admin o del sistema (no del cliente)
+                // Si el mensaje viene del admin o del sistema (ej: cambios de estado)
                 if (newMsg.sender_id !== currentUser.id) {
                     // Si el chat no está abierto actualmente con este ticket
                     if (!isChatModalOpen || !activeTicket || activeTicket.id !== newMsg.ticket_id) {
@@ -143,6 +145,14 @@ export default function PharmacyDashboard({ currentUser, onLogout }) {
                 <div className="user-profile">
                     <i className="fa-solid fa-hospital-user"></i>
                     <span className="user-name">{currentUser.username}</span>
+                    <button 
+                        className="theme-toggle-btn" 
+                        onClick={onToggleTheme} 
+                        title="Cambiar tema"
+                        style={{ marginRight: '4px' }}
+                    >
+                        {currentTheme === 'dark' ? <i className="fa-solid fa-sun"></i> : <i className="fa-solid fa-moon"></i>}
+                    </button>
                     <button className="btn btn-danger btn-sm logout-btn" onClick={onLogout} title="Cerrar sesión">
                         <i className="fa-solid fa-power-off"></i>
                     </button>
@@ -196,36 +206,52 @@ export default function PharmacyDashboard({ currentUser, onLogout }) {
                                     <div 
                                         key={ticket.id}
                                         className={`accordion-item ${isExpanded ? 'expanded' : ''}`}
+                                        style={{ borderLeft: hasUnread ? '3px solid var(--color-danger)' : '' }}
                                     >
-                                        {/* Cabecera del item */}
+                                        {/* Cabecera del acordeón (Muestra descripción en lugar de la fecha) */}
                                         <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>
-                                            <div className="accordion-header-left">
-                                                <span className="accordion-ticket-id">#{ticket.id.substring(0, 8)}...</span>
-                                                <span className="accordion-ticket-date"><i className="fa-regular fa-clock"></i> {fecha}</span>
+                                             <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center' }}>
+                                                 <span className="accordion-ticket-id">#{ticket.id.substring(0, 8)}...</span>
+                                                 {hasUnread && <span className="badge-unread" style={{ marginLeft: '8px', flexShrink: 0 }}>Nuevo Mensaje</span>}
+                                                <span 
+                                                    className="accordion-ticket-desc" 
+                                                    style={{ 
+                                                        color: 'var(--text-secondary)', 
+                                                        marginLeft: '16px',
+                                                        fontSize: '0.9rem',
+                                                        fontWeight: '500'
+                                                    }}
+                                                >
+                                                    {ticket.description}
+                                                </span>
                                             </div>
                                             <div className="accordion-header-right">
-                                                <span class={`badge badge-${ticket.status}`}>{ticket.status}</span>
+                                                {/* Alerta roja pulsante si hay actualización de chat o de estado */}
+                                                {hasUnread && (
+                                                    <span 
+                                                        className="pulsing-alert-dot" 
+                                                        style={{ position: 'relative', top: 'auto', right: 'auto', marginRight: '8px' }}
+                                                    ></span>
+                                                )}
+                                                <span className={`badge badge-${ticket.status}`}>{ticket.status}</span>
                                                 <i className="fa-solid fa-chevron-down accordion-chevron"></i>
                                             </div>
                                         </div>
 
-                                        {/* Cuerpo expandible */}
+                                        {/* Cuerpo expandible (Sin duplicar descripción, solo fecha y botón alineados) */}
                                         {isExpanded && (
-                                            <div className="accordion-body">
-                                                <div className="accordion-desc-section">
-                                                    <h4>Descripción del problema</h4>
-                                                    <p className="accordion-desc-text">{ticket.description}</p>
-                                                </div>
-                                                <div className="accordion-actions-section">
-                                                    <button 
-                                                        className={`btn ${hasUnread ? 'btn-danger' : 'btn-secondary'} unread-badge-container`}
-                                                        onClick={() => handleOpenChat(ticket)}
-                                                    >
-                                                        <i className="fa-regular fa-comments"></i> 
-                                                        <span>Chat de Soporte</span>
-                                                        {hasUnread && <span className="pulsing-alert-dot"></span>}
-                                                    </button>
-                                                </div>
+                                            <div className="accordion-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px' }}>
+                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                    <i className="fa-regular fa-clock"></i> Fecha de emisión: {fecha}
+                                                </span>
+                                                <button 
+                                                    className={`btn ${hasUnread ? 'btn-danger' : 'btn-secondary'} unread-badge-container`}
+                                                    onClick={() => handleOpenChat(ticket)}
+                                                >
+                                                    <i className="fa-regular fa-comments"></i> 
+                                                    <span>Chat de Soporte</span>
+                                                    {hasUnread && <span className="pulsing-alert-dot"></span>}
+                                                </button>
                                             </div>
                                         )}
                                     </div>
@@ -252,7 +278,7 @@ export default function PharmacyDashboard({ currentUser, onLogout }) {
                                 <input 
                                     type="text" 
                                     value={currentUser.username} 
-                                    readonly 
+                                    readOnly 
                                     className="input-readonly" 
                                 />
                             </div>
@@ -261,7 +287,7 @@ export default function PharmacyDashboard({ currentUser, onLogout }) {
                                 <input 
                                     type="text" 
                                     value={new Date().toLocaleDateString('es-ES')} 
-                                    readonly 
+                                    readOnly 
                                     className="input-readonly" 
                                 />
                             </div>

@@ -9,6 +9,16 @@ export default function App() {
     const [currentUser, setCurrentUser] = useState(null);
     const [hasConfig, setHasConfig] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    const toggleTheme = () => {
+        setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    };
 
     useEffect(() => {
         // 1. Verificar si Supabase está configurado
@@ -59,13 +69,13 @@ export default function App() {
 
     // Si no hay sesión iniciada, mostrar Login
     if (!currentUser) {
-        return <Login onLoginSuccess={handleLoginSuccess} />;
+        return <Login onLoginSuccess={handleLoginSuccess} currentTheme={theme} onToggleTheme={toggleTheme} />;
     }
 
     // Router por Roles
     if (currentUser.role === 'admin') {
-        return <AdminDashboard currentUser={currentUser} onLogout={handleLogout} />;
+        return <AdminDashboard currentUser={currentUser} onLogout={handleLogout} currentTheme={theme} onToggleTheme={toggleTheme} />;
     } else {
-        return <PharmacyDashboard currentUser={currentUser} onLogout={handleLogout} />;
+        return <PharmacyDashboard currentUser={currentUser} onLogout={handleLogout} currentTheme={theme} onToggleTheme={toggleTheme} />;
     }
 }

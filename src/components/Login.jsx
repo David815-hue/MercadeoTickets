@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase, clearSupabaseConfig } from '../supabaseClient';
 
-export default function Login({ onLoginSuccess }) {
+export default function Login({ onLoginSuccess, currentTheme, onToggleTheme }) {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -62,6 +62,15 @@ export default function Login({ onLoginSuccess }) {
 
     return (
         <div id="login-screen" className="screen">
+            <div className="login-theme-toggle">
+                <button 
+                    className="theme-toggle-btn" 
+                    onClick={onToggleTheme} 
+                    title="Cambiar tema"
+                >
+                    {currentTheme === 'dark' ? <i className="fa-solid fa-sun"></i> : <i className="fa-solid fa-moon"></i>}
+                </button>
+            </div>
             <div className="glass-card login-card">
                 <div className="logo-area">
                     <div className="logo-circle">

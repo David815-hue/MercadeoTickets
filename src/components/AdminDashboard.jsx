@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
 
-export default function AdminDashboard({ currentUser, onLogout }) {
+
+
+export default function AdminDashboard({ currentUser, onLogout, currentTheme, onToggleTheme }) {
     const [tickets, setTickets] = useState([]);
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('ALL');
@@ -10,10 +12,15 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     const [unreadTicketIds, setUnreadTicketIds] = useState(new Set());
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [expandedTicketId, setExpandedTicketId] = useState(null);
 
     useEffect(() => {
         loadTickets();
     }, []);
+
+    const toggleAccordion = (ticketId) => {
+        setExpandedTicketId(expandedTicketId === ticketId ? null : ticketId);
+    };
 
     // Suscribirse a notificaciones de chat globales para el administrador
     useEffect(() => {
@@ -139,6 +146,14 @@ export default function AdminDashboard({ currentUser, onLogout }) {
                 <div className="user-profile">
                     <i className="fa-solid fa-user-shield"></i>
                     <span className="user-name">Administración</span>
+                    <button 
+                        className="theme-toggle-btn" 
+                        onClick={onToggleTheme} 
+                        title="Cambiar tema"
+                        style={{ marginRight: '4px' }}
+                    >
+                        {currentTheme === 'dark' ? <i className="fa-solid fa-sun"></i> : <i className="fa-solid fa-moon"></i>}
+                    </button>
                     <button className="btn btn-danger btn-sm logout-btn" onClick={onLogout} title="Cerrar sesión">
                         <i className="fa-solid fa-power-off"></i>
                     </button>
@@ -192,6 +207,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
                             </div>
                         ) : (
                             filteredTickets.map(ticket => {
+                                const isExpanded = expandedTicketId === ticket.id;
                                 const hasUnread = unreadTicketIds.has(ticket.id);
                                 const fecha = new Date(ticket.created_at).toLocaleDateString('es-ES', {
                                     day: '2-digit',
@@ -204,35 +220,96 @@ export default function AdminDashboard({ currentUser, onLogout }) {
                                 return (
                                     <div 
                                         key={ticket.id}
-                                        className="accordion-item"
+                                        className={`accordion-item ${isExpanded ? 'expanded' : ''}`}
                                         style={{ borderLeft: hasUnread ? '3px solid var(--color-danger)' : '' }}
                                     >
-                                        <div className="accordion-header" style={{ cursor: 'default' }}>
-                                            <div className="accordion-header-left">
+                                        {/* Cabecera del acordeón */}
+                                        <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>
+                                            <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center' }}>
                                                 <span className="accordion-ticket-id">#{ticket.id.substring(0, 8)}...</span>
-                                                <span className="accordion-ticket-date">
-                                                    <i className="fa-solid fa-hospital"></i> <strong>{ticket.pharmacy_name}</strong> • {fecha}
+                                                <span 
+                                                    className="accordion-ticket-pharmacy" 
+                                                    style={{ 
+                                                        color: 'var(--text-primary)', 
+                                                        marginLeft: '12px', 
+                                                        fontWeight: '700',
+                                                        fontSize: '0.95rem',
+                                                        flexShrink: 0
+                                                    }}
+                                                >
+                                                    <i className="fa-solid fa-hospital" style={{ color: 'var(--color-primary)', marginRight: '6px' }}></i>
+                                                    {ticket.pharmacy_name}
+                                                </span>
+                                                {hasUnread && <span className="badge-unread" style={{ marginLeft: '8px', flexShrink: 0 }}>Nuevo Mensaje</span>}
+                                                <span 
+                                                    className="accordion-ticket-desc" 
+                                                    style={{ 
+                                                        color: 'var(--text-secondary)', 
+                                                        marginLeft: '16px', 
+                                                        fontSize: '0.9rem',
+                                                        fontWeight: '500',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                >
+                                                    — {ticket.description}
                                                 </span>
                                             </div>
                                             <div className="accordion-header-right">
-                                                <span class={`badge badge-${ticket.status}`}>{ticket.status}</span>
+                                                {/* Alerta roja pulsante */}
+                                                {hasUnread && (
+                                                    <span 
+                                                        className="pulsing-alert-dot" 
+                                                        style={{ position: 'relative', top: 'auto', right: 'auto', marginRight: '8px' }}
+                                                    ></span>
+                                                )}
+                                                <span className={`badge badge-${ticket.status}`}>{ticket.status}</span>
+                                                <i className="fa-solid fa-chevron-down accordion-chevron"></i>
                                             </div>
                                         </div>
-                                        <div className="accordion-body" style={{ animation: 'none' }}>
-                                            <div className="accordion-desc-section">
-                                                <p className="accordion-desc-text">{ticket.description}</p>
-                                            </div>
-                                            <div className="accordion-actions-section">
+
+                                        {/* Cuerpo expandible */}
+                                        {isExpanded && (
+                                            <div className="accordion-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                        <i className="fa-regular fa-clock"></i> Fecha de emisión: {fecha}
+                                                    </span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
+                                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                                                            Cambiar Estado:
+                                                        </span>
+                                                        <select 
+                                                            value={ticket.status}
+                                                            onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
+                                                            className="select-status"
+                                                            style={{ 
+                                                                padding: '6px 12px', 
+                                                                fontSize: '0.85rem',
+                                                                background: 'rgba(15, 23, 42, 0.8)',
+                                                                border: '1px solid var(--border-color)',
+                                                                borderRadius: '8px',
+                                                                color: 'var(--text-primary)',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                        >
+                                                            <option value="Aceptado">Aceptado</option>
+                                                            <option value="En revision">En revisión</option>
+                                                            <option value="Resuelto">Resuelto</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
                                                 <button 
                                                     className={`btn ${hasUnread ? 'btn-danger' : 'btn-primary'} unread-badge-container`}
                                                     onClick={() => handleOpenChat(ticket)}
                                                 >
-                                                    <i className="fa-regular fa-comments"></i>
+                                                    <i className="fa-regular fa-comments"></i> 
                                                     <span>Resolver e Interactuar</span>
                                                     {hasUnread && <span className="pulsing-alert-dot"></span>}
                                                 </button>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 );
                             })

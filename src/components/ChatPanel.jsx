@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
+
+
 export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange }) {
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -31,6 +33,7 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                 setMessages(prev => {
                     // Evitar duplicados por si acaso
                     if (prev.some(m => m.id === payload.new.id)) return prev;
+
                     return [...prev, payload.new];
                 });
             })
@@ -162,7 +165,7 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
             }
 
             // Insertar fila del mensaje
-            const { error: msgError } = await supabase
+            const { data: insertedMsg, error: msgError } = await supabase
                 .from('messages')
                 .insert({
                     ticket_id: ticket.id,
@@ -170,9 +173,19 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                     sender_name: currentUser.role === 'admin' ? 'Administrador' : currentUser.username,
                     message_text: msgText || null,
                     image_url: imageUrl
-                });
+                })
+                .select()
+                .single();
 
             if (msgError) throw msgError;
+
+            // Actualizar localmente de inmediato
+            if (insertedMsg) {
+                setMessages(prev => {
+                    if (prev.some(m => m.id === insertedMsg.id)) return prev;
+                    return [...prev, insertedMsg];
+                });
+            }
 
             // Limpiar inputs
             setText('');
@@ -222,7 +235,7 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                     </div>
                 ) : (
                     <div className="chat-ticket-status">
-                        <span class={`badge badge-${ticket.status}`}>{ticket.status}</span>
+                        <span className={`badge badge-${ticket.status}`}>{ticket.status}</span>
                     </div>
                 )}
             </div>
@@ -272,7 +285,7 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                         return (
                             <div 
                                 key={msg.id} 
-                                class={`message-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`}
+                                className={`message-bubble ${isOutgoing ? 'outgoing' : 'incoming'}`}
                             >
                                 <span className="message-meta">{msg.sender_name} • {fecha}</span>
                                 <div className="message-content">
