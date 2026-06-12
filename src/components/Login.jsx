@@ -62,15 +62,29 @@ export default function Login({ onLoginSuccess, currentTheme, onToggleTheme }) {
 
     return (
         <div id="login-screen" className="screen">
+            {/* Blobs animados de fondo */}
+            <div className="login-blob-bg">
+                <div className="login-blob-1"></div>
+                <div className="login-blob-2"></div>
+            </div>
+
+            {/* Toggle de tema - esquina superior derecha */}
             <div className="login-theme-toggle">
-                <button 
-                    className="theme-toggle-btn" 
-                    onClick={onToggleTheme} 
-                    title="Cambiar tema"
+                <button
+                    className="theme-toggle-track"
+                    onClick={onToggleTheme}
+                    title={currentTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                    aria-label="Alternar tema"
                 >
-                    {currentTheme === 'dark' ? <i className="fa-solid fa-sun"></i> : <i className="fa-solid fa-moon"></i>}
+                    <span className="theme-toggle-thumb">
+                        {currentTheme === 'dark'
+                            ? <i className="fa-solid fa-moon"></i>
+                            : <i className="fa-solid fa-sun"></i>
+                        }
+                    </span>
                 </button>
             </div>
+
             <div className="glass-card login-card">
                 <div className="logo-area">
                     <div className="logo-circle">

@@ -137,25 +137,48 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
 
     return (
         <div id="admin-screen">
-            {/* Header */}
+            {/* Header Flotante Premium */}
             <header className="app-header">
-                <div className="header-logo">
-                    <i className="fa-solid fa-ticket-simple"></i>
-                    <h2>FarmaTickets <span className="badge badge-admin">Administrador</span></h2>
+                {/* Pill Izquierdo: Avatar + Info */}
+                <div className="header-user-pill">
+                    <div className="user-avatar avatar-admin">
+                        {(currentUser.username || 'A').charAt(0)}
+                    </div>
+                    <div className="header-user-info">
+                        <span className="header-user-name">Administración</span>
+                        <span className="header-user-role">
+                            <i className="fa-solid fa-shield-halved" style={{ marginRight: '4px', fontSize: '0.65rem', color: '#f59e0b' }}></i>
+                            Admin
+                        </span>
+                    </div>
                 </div>
-                <div className="user-profile">
-                    <i className="fa-solid fa-user-shield"></i>
-                    <span className="user-name">Administración</span>
-                    <button 
-                        className="theme-toggle-btn" 
-                        onClick={onToggleTheme} 
-                        title="Cambiar tema"
-                        style={{ marginRight: '4px' }}
+
+                {/* Pill Derecho: Toggle Tema + Logout */}
+                <div className="header-controls-pill">
+                    {/* Toggle Animado Pill */}
+                    <button
+                        className="theme-toggle-track"
+                        onClick={onToggleTheme}
+                        title={currentTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                        aria-label="Alternar tema"
                     >
-                        {currentTheme === 'dark' ? <i className="fa-solid fa-sun"></i> : <i className="fa-solid fa-moon"></i>}
+                        <span className="theme-toggle-thumb">
+                            {currentTheme === 'dark'
+                                ? <i className="fa-solid fa-moon"></i>
+                                : <i className="fa-solid fa-sun"></i>
+                            }
+                        </span>
                     </button>
-                    <button className="btn btn-danger btn-sm logout-btn" onClick={onLogout} title="Cerrar sesión">
-                        <i className="fa-solid fa-power-off"></i>
+
+                    <div className="header-divider"></div>
+
+                    {/* Logout Icon */}
+                    <button
+                        className="btn-logout-icon"
+                        onClick={onLogout}
+                        title="Cerrar sesión"
+                    >
+                        <i className="fa-solid fa-arrow-right-from-bracket"></i>
                     </button>
                 </div>
             </header>
@@ -264,48 +287,37 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                         style={{ position: 'relative', top: 'auto', right: 'auto', marginRight: '8px' }}
                                                     ></span>
                                                 )}
-                                                <span className={`badge badge-${ticket.status}`}>{ticket.status}</span>
+                                                <span className={`badge status-pill status-pill-${ticket.status.toLowerCase().replace(' ', '_')}`}>
+                                                    {ticket.status}
+                                                </span>
                                                 <i className="fa-solid fa-chevron-down accordion-chevron"></i>
                                             </div>
                                         </div>
 
                                         {/* Cuerpo expandible */}
                                         {isExpanded && (
-                                            <div className="accordion-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', flexWrap: 'wrap', gap: '12px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-                                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                                        <i className="fa-regular fa-clock"></i> Fecha de emisión: {fecha}
-                                                    </span>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
-                                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: '600' }}>
-                                                            Cambiar Estado:
-                                                        </span>
-                                                        <select 
-                                                            value={ticket.status}
-                                                            onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
-                                                            className="select-status"
-                                                            style={{ 
-                                                                padding: '6px 12px', 
-                                                                fontSize: '0.85rem',
-                                                                background: 'rgba(15, 23, 42, 0.8)',
-                                                                border: '1px solid var(--border-color)',
-                                                                borderRadius: '8px',
-                                                                color: 'var(--text-primary)',
-                                                                cursor: 'pointer'
-                                                            }}
-                                                        >
-                                                            <option value="Aceptado">Aceptado</option>
-                                                            <option value="En revision">En revisión</option>
-                                                            <option value="Resuelto">Resuelto</option>
-                                                        </select>
-                                                    </div>
+                                            <div className="accordion-body-row">
+                                                <span className="accordion-body-date">
+                                                    <i className="fa-regular fa-clock"></i> {fecha}
+                                                </span>
+                                                <div className="accordion-body-status-ctrl" onClick={(e) => e.stopPropagation()}>
+                                                    <span className="accordion-body-status-label">Estado</span>
+                                                    <select 
+                                                        value={ticket.status}
+                                                        onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
+                                                        className="select-status"
+                                                    >
+                                                        <option value="Aceptado">Aceptado</option>
+                                                        <option value="En revision">En revisión</option>
+                                                        <option value="Resuelto">Resuelto</option>
+                                                    </select>
                                                 </div>
                                                 <button 
-                                                    className={`btn ${hasUnread ? 'btn-danger' : 'btn-primary'} unread-badge-container`}
+                                                    className={`btn ${hasUnread ? 'btn-danger' : 'btn-primary'} btn-sm unread-badge-container`}
                                                     onClick={() => handleOpenChat(ticket)}
                                                 >
-                                                    <i className="fa-regular fa-comments"></i> 
-                                                    <span>Resolver e Interactuar</span>
+                                                    <i className="fa-regular fa-comments"></i>
+                                                    <span>Interactuar</span>
                                                     {hasUnread && <span className="pulsing-alert-dot"></span>}
                                                 </button>
                                             </div>

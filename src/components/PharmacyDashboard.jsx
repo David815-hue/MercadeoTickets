@@ -136,25 +136,48 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
 
     return (
         <div id="pharmacy-screen">
-            {/* Header */}
+            {/* Header Flotante Premium */}
             <header className="app-header">
-                <div className="header-logo">
-                    <i className="fa-solid fa-ticket"></i>
-                    <h2>FarmaTickets <span className="badge badge-pharmacy">Farmacia</span></h2>
+                {/* Pill Izquierdo: Avatar + Info */}
+                <div className="header-user-pill">
+                    <div className="user-avatar avatar-pharmacy">
+                        {(currentUser.username || 'F').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="header-user-info">
+                        <span className="header-user-name">{currentUser.username}</span>
+                        <span className="header-user-role">
+                            <i className="fa-solid fa-hospital" style={{ marginRight: '4px', fontSize: '0.65rem', color: '#818cf8' }}></i>
+                            Farmacia
+                        </span>
+                    </div>
                 </div>
-                <div className="user-profile">
-                    <i className="fa-solid fa-hospital-user"></i>
-                    <span className="user-name">{currentUser.username}</span>
-                    <button 
-                        className="theme-toggle-btn" 
-                        onClick={onToggleTheme} 
-                        title="Cambiar tema"
-                        style={{ marginRight: '4px' }}
+
+                {/* Pill Derecho: Toggle Tema + Logout */}
+                <div className="header-controls-pill">
+                    {/* Toggle Animado Pill */}
+                    <button
+                        className="theme-toggle-track"
+                        onClick={onToggleTheme}
+                        title={currentTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+                        aria-label="Alternar tema"
                     >
-                        {currentTheme === 'dark' ? <i className="fa-solid fa-sun"></i> : <i className="fa-solid fa-moon"></i>}
+                        <span className="theme-toggle-thumb">
+                            {currentTheme === 'dark'
+                                ? <i className="fa-solid fa-moon"></i>
+                                : <i className="fa-solid fa-sun"></i>
+                            }
+                        </span>
                     </button>
-                    <button className="btn btn-danger btn-sm logout-btn" onClick={onLogout} title="Cerrar sesión">
-                        <i className="fa-solid fa-power-off"></i>
+
+                    <div className="header-divider"></div>
+
+                    {/* Logout Icon */}
+                    <button
+                        className="btn-logout-icon"
+                        onClick={onLogout}
+                        title="Cerrar sesión"
+                    >
+                        <i className="fa-solid fa-arrow-right-from-bracket"></i>
                     </button>
                 </div>
             </header>
@@ -168,12 +191,12 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                             <h2>Mis Solicitudes</h2>
                             <p>Consulta el estado de tus reportes y comunícate con soporte técnico.</p>
                         </div>
-                        <div className="flex-row gap-12 align-center">
+                        <div className="flex-row gap-8 align-center">
                             <button className="btn btn-secondary btn-icon-only" onClick={loadTickets} title="Actualizar lista">
                                 <i className="fa-solid fa-rotate"></i>
                             </button>
                             <button className="btn btn-primary" onClick={() => setIsCreateModalOpen(true)}>
-                                <i className="fa-solid fa-circle-plus"></i> Crear Nuevo Ticket
+                                <i className="fa-solid fa-circle-plus"></i> Crear Ticket
                             </button>
                         </div>
                     </div>
@@ -226,29 +249,30 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                 </span>
                                             </div>
                                             <div className="accordion-header-right">
-                                                {/* Alerta roja pulsante si hay actualización de chat o de estado */}
                                                 {hasUnread && (
                                                     <span 
                                                         className="pulsing-alert-dot" 
                                                         style={{ position: 'relative', top: 'auto', right: 'auto', marginRight: '8px' }}
                                                     ></span>
                                                 )}
-                                                <span className={`badge badge-${ticket.status}`}>{ticket.status}</span>
+                                                <span className={`badge status-pill status-pill-${ticket.status.toLowerCase().replace(' ', '_')}`}>
+                                                    {ticket.status}
+                                                </span>
                                                 <i className="fa-solid fa-chevron-down accordion-chevron"></i>
                                             </div>
                                         </div>
 
-                                        {/* Cuerpo expandible (Sin duplicar descripción, solo fecha y botón alineados) */}
+                                        {/* Cuerpo expandible */}
                                         {isExpanded && (
-                                            <div className="accordion-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px' }}>
-                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                                    <i className="fa-regular fa-clock"></i> Fecha de emisión: {fecha}
+                                            <div className="accordion-body-row">
+                                                <span className="accordion-body-date">
+                                                    <i className="fa-regular fa-clock"></i> {fecha}
                                                 </span>
                                                 <button 
-                                                    className={`btn ${hasUnread ? 'btn-danger' : 'btn-secondary'} unread-badge-container`}
+                                                    className={`btn ${hasUnread ? 'btn-danger' : 'btn-secondary'} btn-sm unread-badge-container`}
                                                     onClick={() => handleOpenChat(ticket)}
                                                 >
-                                                    <i className="fa-regular fa-comments"></i> 
+                                                    <i className="fa-regular fa-comments"></i>
                                                     <span>Chat de Soporte</span>
                                                     {hasUnread && <span className="pulsing-alert-dot"></span>}
                                                 </button>
@@ -270,7 +294,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                             <i className="fa-solid fa-xmark"></i>
                         </button>
                         <h3 style={{ marginBottom: '20px', fontSize: '1.3rem', fontWeight: '700' }}>
-                            <i className="fa-solid fa-circle-plus"></i> Crear Nuevo Ticket
+                            <i className="fa-solid fa-circle-plus"></i> Crear Ticket
                         </h3>
                         <form onSubmit={handleCreateTicket}>
                             <div className="input-group">
