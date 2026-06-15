@@ -662,7 +662,7 @@ textarea:focus {
     top: 0;
     left: 0;
     right: 0;
-    z-index: 40;
+    z-index: 100;
     padding: 16px 24px;
     display: flex;
     justify-content: space-between;
@@ -1472,6 +1472,7 @@ textarea:focus {
     gap: 16px;
     overflow-y: auto;
     padding-right: 6px;
+    padding-bottom: 120px;
     flex: 1;
 }
 
@@ -1509,6 +1510,7 @@ textarea:focus {
 .accordion-item.expanded {
     border-color: var(--border-accordion-expanded);
     box-shadow: var(--shadow-accordion-expanded);
+    z-index: 10;
 }
 .accordion-item.expanded::before {
     background: var(--bg-accordion-expanded);

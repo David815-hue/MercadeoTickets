@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
 import KanbanBoard from './KanbanBoard';
+import CustomStatusDropdown from './CustomStatusDropdown';
 
 
 
@@ -392,7 +393,10 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                     <div 
                                         key={ticket.id}
                                         className={`accordion-item ${isExpanded ? 'expanded' : ''}`}
-                                        style={{ borderLeft: hasUnread ? '3px solid var(--color-danger)' : '' }}
+                                        style={{ 
+                                            borderLeft: hasUnread ? '3px solid var(--color-danger)' : '',
+                                            zIndex: isExpanded ? 50 : 1
+                                        }}
                                     >
                                         {/* Cabecera del acordeón */}
                                         <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>
@@ -452,15 +456,10 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                 </span>
                                                 <div className="accordion-body-status-ctrl" onClick={(e) => e.stopPropagation()}>
                                                     <span className="accordion-body-status-label">Estado</span>
-                                                    <select 
+                                                    <CustomStatusDropdown 
                                                         value={ticket.status}
-                                                        onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
-                                                        className="select-status"
-                                                    >
-                                                        <option value="Aceptado">Aceptado</option>
-                                                        <option value="En revision">En revisión</option>
-                                                        <option value="Resuelto">Resuelto</option>
-                                                    </select>
+                                                        onChange={(val) => handleStatusChange(ticket.id, val)}
+                                                    />
                                                 </div>
                                                 <button 
                                                     className={`btn ${hasUnread ? 'btn-danger' : 'btn-primary'} btn-sm unread-badge-container`}
@@ -530,17 +529,12 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                         })}
                                     </span>
                                 </div>
-                                <div className="detail-meta-item">
+                                <div className="detail-meta-item" style={{ overflow: 'visible' }}>
                                     <label>Estado</label>
-                                    <select 
+                                    <CustomStatusDropdown 
                                         value={selectedDetailTicket.status}
-                                        onChange={(e) => handleStatusChange(selectedDetailTicket.id, e.target.value)}
-                                        className="select-status"
-                                    >
-                                        <option value="Aceptado">Aceptado</option>
-                                        <option value="En revision">En revisión</option>
-                                        <option value="Resuelto">Resuelto</option>
-                                    </select>
+                                        onChange={(val) => handleStatusChange(selectedDetailTicket.id, val)}
+                                    />
                                 </div>
                                 <div className="detail-meta-item">
                                     <label>Chat de Soporte</label>

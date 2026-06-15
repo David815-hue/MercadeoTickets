@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase, clearSupabaseConfig } from '../supabaseClient';
+import { supabase } from '../supabaseClient';
 
 export default function Login({ onLoginSuccess, currentTheme, onToggleTheme }) {
     const [username, setUsername] = useState('');
@@ -54,11 +54,7 @@ export default function Login({ onLoginSuccess, currentTheme, onToggleTheme }) {
         }
     };
 
-    const handleResetConfig = () => {
-        if (window.confirm('¿Deseas desvincular el proyecto actual de Supabase?')) {
-            clearSupabaseConfig();
-        }
-    };
+
 
     return (
         <div id="login-screen" className="screen">
@@ -133,9 +129,7 @@ export default function Login({ onLoginSuccess, currentTheme, onToggleTheme }) {
 
                 <div className="login-footer">
                     <p>¿Problemas para ingresar? Contacta al administrador del sistema.</p>
-                    <button id="btn-reset-config" onClick={handleResetConfig} className="btn-link">
-                        <i className="fa-solid fa-rotate-left"></i> Cambiar Proyecto Supabase
-                    </button>
+
                 </div>
             </div>
         </div>

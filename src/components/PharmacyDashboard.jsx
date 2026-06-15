@@ -230,7 +230,10 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                     <div 
                                         key={ticket.id}
                                         className={`accordion-item ${isExpanded ? 'expanded' : ''}`}
-                                        style={{ borderLeft: hasUnread ? '3px solid var(--color-danger)' : '' }}
+                                        style={{ 
+                                            borderLeft: hasUnread ? '3px solid var(--color-danger)' : '',
+                                            zIndex: isExpanded ? 50 : 1
+                                        }}
                                     >
                                         {/* Cabecera del acordeón (Muestra descripción en lugar de la fecha) */}
                                         <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>

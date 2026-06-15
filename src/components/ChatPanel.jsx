@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
+import CustomStatusDropdown from './CustomStatusDropdown';
 
 
 
@@ -11,6 +12,7 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
     const [compressedBlob, setCompressedBlob] = useState(null);
     const [compressedSizeKb, setCompressedSizeKb] = useState(0);
     const [previewUrl, setPreviewUrl] = useState('');
+    const [lightboxUrl, setLightboxUrl] = useState(null);
 
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -223,22 +225,16 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
 
                 {/* Control de Estado */}
                 {isAdmin ? (
-                    <div className="admin-status-control">
-                        <label htmlFor="admin-change-status">Estado del Ticket</label>
-                        <select 
-                            id="admin-change-status" 
-                            className="select-status"
+                    <div className="admin-status-control" style={{ overflow: 'visible' }}>
+                        <label>Estado del Ticket</label>
+                        <CustomStatusDropdown 
                             value={ticket.status}
-                            onChange={(e) => onStatusChange(ticket.id, e.target.value)}
-                        >
-                            <option value="Aceptado">Aceptado</option>
-                            <option value="En revision">En revisión</option>
-                            <option value="Resuelto">Resuelto</option>
-                        </select>
+                            onChange={(val) => onStatusChange(ticket.id, val)}
+                        />
                     </div>
                 ) : (
                     <div className="chat-ticket-status">
-                        <span className={`badge badge-${ticket.status}`}>{ticket.status}</span>
+                        <span className={`badge badge-${ticket.status.toLowerCase().replace(' ', '_')}`}>{ticket.status}</span>
                     </div>
                 )}
             </div>
@@ -294,9 +290,16 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                                 <div className="message-content">
                                     {msg.message_text && <p>{msg.message_text}</p>}
                                     {msg.image_url && (
-                                        <a href={msg.image_url} target="_blank" rel="noreferrer">
+                                        <div 
+                                            className="chat-image-wrap"
+                                            onClick={() => setLightboxUrl(msg.image_url)}
+                                            title="Click para ampliar imagen"
+                                        >
                                             <img src={msg.image_url} className="chat-image" alt="Adjunto" />
-                                        </a>
+                                            <div className="chat-image-overlay">
+                                                <i className="fa-solid fa-magnifying-glass-plus"></i>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -369,6 +372,23 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                     </button>
                 </div>
             </form>
+
+            {/* LIGHTBOX: Visor de Imágenes Integrado */}
+            {lightboxUrl && (
+                <div className="lightbox-overlay" onClick={() => setLightboxUrl(null)}>
+                    <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="lightbox-close-btn" onClick={() => setLightboxUrl(null)} title="Cerrar visor">
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+                        <img src={lightboxUrl} alt="Vista ampliada" className="lightbox-image" />
+                        <div className="lightbox-actions">
+                            <a href={lightboxUrl} download target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                                <i className="fa-solid fa-download"></i> Descargar Imagen
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
