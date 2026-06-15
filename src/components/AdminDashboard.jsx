@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
 import KanbanBoard from './KanbanBoard';
 import CustomStatusDropdown from './CustomStatusDropdown';
+import CustomFilterDropdown from './CustomFilterDropdown';
 
 
 
@@ -630,24 +631,35 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                     {viewType === 'list' && (
                         <div className="dashboard-actions-bar" style={{ gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
                             <div className="flex-row gap-12 align-center flex-wrap">
-                                <input 
-                                    type="text" 
-                                    placeholder="🔍 Buscar farmacia o ticket..." 
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    style={{ maxWidth: '220px', padding: '8px 12px', fontSize: '0.85rem' }}
-                                />
-                                <select 
+                                <div className="search-input-wrapper">
+                                    <i className="fa-solid fa-magnifying-glass search-icon"></i>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Buscar farmacia o ticket..." 
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                    />
+                                    {search && (
+                                        <button 
+                                            className="clear-search-btn" 
+                                            onClick={() => setSearch('')} 
+                                            title="Limpiar búsqueda"
+                                        >
+                                            <i className="fa-solid fa-xmark"></i>
+                                        </button>
+                                    )}
+                                </div>
+
+                                <CustomFilterDropdown 
                                     value={filterStatus}
-                                    onChange={(e) => setFilterStatus(e.target.value)}
-                                    style={{ maxWidth: '160px', padding: '8px 12px', fontSize: '0.85rem' }}
+                                    onChange={setFilterStatus}
+                                />
+
+                                <button 
+                                    className="btn btn-secondary btn-refresh-premium" 
+                                    onClick={loadTickets} 
+                                    title="Actualizar lista"
                                 >
-                                    <option value="ALL">Todos los estados</option>
-                                    <option value="Aceptado">Aceptado</option>
-                                    <option value="En revision">En revisión</option>
-                                    <option value="Resuelto">Resuelto</option>
-                                </select>
-                                <button className="btn btn-secondary btn-icon-only" onClick={loadTickets} title="Actualizar lista">
                                     <i className="fa-solid fa-rotate"></i>
                                 </button>
                             </div>
