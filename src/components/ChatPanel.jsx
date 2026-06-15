@@ -77,7 +77,7 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    // 2. Compresión de Imagen Client-side con Canvas
+    // 2. Compresión de Imagen Client-side con Canvas (Inteligente y de Alta Calidad)
     const handleImageSelect = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -87,13 +87,22 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
             return;
         }
 
+        // Si el archivo es pequeño (menos de 2.5 MB), lo enviamos original sin compresión para mantener calidad 100% perfecta (ideal para capturas de pantalla)
+        if (file.size < 2.5 * 1024 * 1024) {
+            setCompressedBlob(file);
+            setCompressedSizeKb((file.size / 1024).toFixed(1));
+            setPreviewUrl(URL.createObjectURL(file));
+            return;
+        }
+
+        // Si es más grande de 2.5 MB, hacemos una compresión suave de alta calidad
         const reader = new FileReader();
         reader.onload = (event) => {
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 1200;
-                const MAX_HEIGHT = 1200;
+                const MAX_WIDTH = 2048; // Aumentado a 2K para máxima nitidez
+                const MAX_HEIGHT = 2048;
                 let width = img.width;
                 let height = img.height;
 
@@ -113,14 +122,16 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                 canvas.height = height;
 
                 const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Comprimir al 70% de calidad JPG
+                // Comprimir al 90% de calidad JPG (calidad prácticamente idéntica al original)
                 canvas.toBlob((blob) => {
-                    setCompressedBlob(blob);
-                    setCompressedSizeKb((blob.size / 1024).toFixed(1));
-                    setPreviewUrl(URL.createObjectURL(blob));
-                }, 'image/jpeg', 0.7);
+                    setCompressedBlob(blob || file);
+                    setCompressedSizeKb(((blob ? blob.size : file.size) / 1024).toFixed(1));
+                    setPreviewUrl(URL.createObjectURL(blob || file));
+                }, 'image/jpeg', 0.9);
             };
             img.src = event.target.result;
         };
@@ -156,13 +167,14 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
 
             // Subir imagen si la hay
             if (hasImage) {
-                const fileName = `${Date.now()}_comprimida.jpg`;
+                const extension = compressedBlob.type === 'image/png' ? 'png' : 'jpg';
+                const fileName = `${Date.now()}_adjunto.${extension}`;
                 const filePath = `tickets/${ticket.id}/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
                     .from('ticket-attachments')
                     .upload(filePath, compressedBlob, {
-                        contentType: 'image/jpeg'
+                        contentType: compressedBlob.type
                     });
 
                 if (uploadError) throw uploadError;
