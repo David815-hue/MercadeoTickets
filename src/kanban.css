@@ -759,6 +759,272 @@
     }
 }
 
+/* ====================================================
+   ESTILOS PARA MENÚ DE USUARIO Y GESTIÓN DE CUENTAS
+   ==================================================== */
+.user-menu-container {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-user-menu {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.15rem;
+    cursor: pointer;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-smooth);
+}
+
+.btn-user-menu:hover,
+.btn-user-menu.active {
+    background: var(--bg-btn-secondary-hover);
+    color: var(--border-focus);
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+}
+
+.user-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 200px;
+    background: var(--header-pill-bg, rgba(15, 23, 42, 0.95));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--header-pill-border, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+    z-index: 1000;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    animation: selectFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.user-menu-item {
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: var(--transition-smooth);
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-weight: 500;
+}
+
+.user-menu-item:hover {
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--text-primary);
+}
+
+.user-menu-item.logout {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 4px;
+    padding-top: 12px;
+    color: var(--color-danger);
+}
+
+.user-menu-item.logout:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+}
+
+/* Modal de gestión de usuarios (Tabla y Formularios) */
+.user-list-table-container {
+    overflow-x: auto;
+    margin-top: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.15);
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.88rem;
+}
+
+.user-table th {
+    background: rgba(15, 23, 42, 0.6);
+    padding: 12px 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.user-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+.user-table tr:hover td {
+    background: rgba(255, 255, 255, 0.01);
+    color: var(--text-primary);
+}
+
+/* Controles en tabla */
+.table-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-table-action {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-table-action:hover {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.2);
+    color: var(--text-primary);
+}
+
+.btn-table-action.delete:hover {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* Formularios rápidos dentro del modal */
+.user-form-card {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    margin-top: 16px;
+    animation: fadeIn 0.25s ease;
+}
+
+.user-form-card h4 {
+    margin-bottom: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Pantalla normal de gestión de usuarios */
+.user-management-screen {
+    animation: fadeIn 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.user-management-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 16px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.user-management-header h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-management-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+@media (min-width: 992px) {
+    .user-management-grid.has-sidebar {
+        grid-template-columns: 1.4fr 1fr;
+    }
+}
+
+.user-management-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+}
+
+.user-management-card h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-list-table-container.full-view {
+    max-height: 550px;
+    background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .user-list-table-container.full-view {
+    background: rgba(99, 102, 241, 0.03);
+}
+
+[data-theme="light"] .user-table th {
+    background: rgba(99, 102, 241, 0.06);
+    color: var(--text-primary);
+    border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+}
+
+[data-theme="light"] .user-table tr:hover td {
+    background: rgba(99, 102, 241, 0.03);
+}
+
+.user-management-card .user-form-card {
+    margin-top: 0;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+
 
 
 

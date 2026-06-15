@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
 
@@ -18,9 +18,45 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
+    // Gestión de perfil
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [profileError, setProfileError] = useState('');
+    const [profileSuccess, setProfileSuccess] = useState('');
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
+    const userMenuRef = useRef(null);
+
     useEffect(() => {
         loadTickets();
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Actualizar última conexión en base de datos
+    useEffect(() => {
+        const updateLastSeen = async () => {
+            try {
+                await supabase
+                    .from('profiles')
+                    .update({ last_seen_at: new Date().toISOString() })
+                    .eq('id', currentUser.id);
+            } catch (err) {
+                console.error('Error actualizando última conexión:', err);
+            }
+        };
+        updateLastSeen();
+    }, [currentUser.id]);
+
+    // Cerrar menú de usuario al hacer clic fuera
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+                setIsUserMenuOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     // Suscribirse a mensajes globales para capturar alertas en tiempo real (mensajes nuevos y cambios de estado)
@@ -135,6 +171,48 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         loadTickets(); // Recargar para ver si cambió el estado mientras chateaba
     };
 
+    const handleUpdateProfile = async (e) => {
+        e.preventDefault();
+        setProfileError('');
+        setProfileSuccess('');
+
+        if (!newPassword) {
+            setProfileError('La contraseña no puede estar vacía.');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setProfileError('Las contraseñas no coinciden.');
+            return;
+        }
+
+        setIsSavingProfile(true);
+
+        try {
+            const { error } = await supabase.rpc('update_user_password', {
+                p_user_id: currentUser.id,
+                p_new_password: newPassword
+            });
+
+            if (error) throw error;
+
+            setProfileSuccess('Contraseña actualizada correctamente.');
+            setNewPassword('');
+            setConfirmPassword('');
+            
+            setTimeout(() => {
+                setIsProfileModalOpen(false);
+                setProfileSuccess('');
+            }, 1500);
+
+        } catch (err) {
+            console.error('Error al actualizar perfil:', err);
+            setProfileError(err.message || 'Error al actualizar contraseña.');
+        } finally {
+            setIsSavingProfile(false);
+        }
+    };
+
     return (
         <div id="pharmacy-screen">
             {/* Header Flotante Premium */}
@@ -172,14 +250,35 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
 
                     <div className="header-divider"></div>
 
-                    {/* Logout Icon */}
-                    <button
-                        className="btn-logout-icon"
-                        onClick={onLogout}
-                        title="Cerrar sesión"
-                    >
-                        <i className="fa-solid fa-arrow-right-from-bracket"></i>
-                    </button>
+                    {/* Menú de Usuario */}
+                    <div className="user-menu-container" ref={userMenuRef}>
+                        <button
+                            className={`btn-user-menu ${isUserMenuOpen ? 'active' : ''}`}
+                            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                            title="Opciones de cuenta"
+                        >
+                            <i className="fa-solid fa-user-gear"></i>
+                        </button>
+                        {isUserMenuOpen && (
+                            <div className="user-menu-dropdown">
+                                <button 
+                                    className="user-menu-item"
+                                    onClick={() => {
+                                        setIsProfileModalOpen(true);
+                                        setIsUserMenuOpen(false);
+                                    }}
+                                >
+                                    <i className="fa-solid fa-user-pen"></i> Gestionar Perfil
+                                </button>
+                                <button 
+                                    className="user-menu-item logout"
+                                    onClick={onLogout}
+                                >
+                                    <i className="fa-solid fa-arrow-right-from-bracket"></i> Cerrar Sesión
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </header>
 
@@ -364,6 +463,73 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                             currentUser={currentUser} 
                             isAdmin={false}
                         />
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL 3: Gestionar Perfil */}
+            {isProfileModalOpen && (
+                <div className="modal-overlay" onClick={() => setIsProfileModalOpen(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="modal-close-btn" onClick={() => setIsProfileModalOpen(false)}>
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+                        <h3 style={{ marginBottom: '20px', fontSize: '1.3rem', fontWeight: '700' }}>
+                            <i className="fa-solid fa-user-pen"></i> Gestionar Perfil
+                        </h3>
+                        <form onSubmit={handleUpdateProfile}>
+                            <div className="input-group">
+                                <label>Nombre de Usuario</label>
+                                <input 
+                                    type="text" 
+                                    value={currentUser.username} 
+                                    readOnly 
+                                    className="input-readonly" 
+                                />
+                            </div>
+                            <div className="input-group">
+                                <label htmlFor="profile-password">Nueva Contraseña</label>
+                                <input 
+                                    id="profile-password"
+                                    type="password" 
+                                    placeholder="Introduce tu nueva contraseña" 
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    required 
+                                    disabled={isSavingProfile}
+                                />
+                            </div>
+                            <div className="input-group">
+                                <label htmlFor="profile-confirm-password">Confirmar Nueva Contraseña</label>
+                                <input 
+                                    id="profile-confirm-password"
+                                    type="password" 
+                                    placeholder="Confirma tu nueva contraseña" 
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    required 
+                                    disabled={isSavingProfile}
+                                />
+                            </div>
+                            
+                            {profileError && (
+                                <div className="error-alert" style={{ marginTop: '12px' }}>
+                                    <i className="fa-solid fa-triangle-exclamation"></i>
+                                    <span>{profileError}</span>
+                                </div>
+                            )}
+                            
+                            {profileSuccess && (
+                                <div className="success-alert" style={{ marginTop: '12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '10px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <i className="fa-solid fa-circle-check"></i>
+                                    <span>{profileSuccess}</span>
+                                </div>
+                            )}
+
+                            <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: '20px' }} disabled={isSavingProfile}>
+                                <i className="fa-solid fa-floppy-disk"></i> {isSavingProfile ? 'Guardando...' : 'Guardar Cambios'}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

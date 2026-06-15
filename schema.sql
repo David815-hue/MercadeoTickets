@@ -235,3 +235,130 @@ CREATE POLICY "Permitir lectura de adjuntos a usuarios autenticados"
 ON storage.objects FOR SELECT
 TO authenticated
 USING (bucket_id = 'ticket-attachments');
+
+-- ====================================================
+-- MEJORAS DE GESTIÓN DE PERFILES Y USUARIOS
+-- ====================================================
+
+-- 1. Añadir columna last_seen_at a public.profiles si no existe
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMP WITH TIME ZONE;
+
+-- 2. Habilitar política de UPDATE en profiles
+DROP POLICY IF EXISTS "Permitir actualizar perfiles" ON public.profiles;
+CREATE POLICY "Permitir actualizar perfiles" 
+ON public.profiles FOR UPDATE
+USING (
+    auth.uid() = id OR 
+    (auth.jwt() ->> 'email') LIKE 'admin%'
+)
+WITH CHECK (
+    auth.uid() = id OR 
+    (auth.jwt() ->> 'email') LIKE 'admin%'
+);
+
+-- 3. Función para crear usuarios (Security Definer)
+CREATE OR REPLACE FUNCTION public.create_profile_user(
+    p_username TEXT,
+    p_password TEXT,
+    p_role TEXT
+)
+RETURNS VOID AS $$
+DECLARE
+    new_user_id UUID;
+    encrypted_pw TEXT;
+    p_email TEXT;
+BEGIN
+    -- Generar email según el rol
+    IF p_role = 'admin' THEN
+        p_email := LOWER(p_username) || '@system.com';
+    ELSE
+        p_email := LOWER(p_username) || '@farmacia.com';
+    END IF;
+
+    -- Generar password encriptada (con crypt de pgcrypto)
+    encrypted_pw := crypt(p_password, gen_salt('bf'));
+    
+    -- Insertar en auth.users
+    INSERT INTO auth.users (
+        instance_id,
+        id,
+        aud,
+        role,
+        email,
+        encrypted_password,
+        email_confirmed_at,
+        created_at,
+        updated_at,
+        raw_app_meta_data,
+        raw_user_meta_data,
+        is_sso_user,
+        is_anonymous
+    )
+    VALUES (
+        '00000000-0000-0000-0000-000000000000',
+        gen_random_uuid(),
+        'authenticated',
+        'authenticated',
+        p_email,
+        encrypted_pw,
+        now(),
+        now(),
+        now(),
+        jsonb_build_object('provider', 'email', 'providers', array['email']),
+        jsonb_build_object('username', p_username),
+        false,
+        false
+    )
+    RETURNING id INTO new_user_id;
+
+    -- El trigger handle_new_user creará el perfil automáticamente.
+    -- Pero actualizamos el perfil para asegurar el username y rol correctos.
+    UPDATE public.profiles
+    SET username = UPPER(p_username),
+        role = p_role
+    WHERE id = new_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 4. Función para cambiar contraseña (Security Definer)
+CREATE OR REPLACE FUNCTION public.update_user_password(
+    p_user_id UUID,
+    p_new_password TEXT
+)
+RETURNS VOID AS $$
+DECLARE
+    caller_id UUID;
+    caller_role TEXT;
+BEGIN
+    caller_id := auth.uid();
+    
+    SELECT role INTO caller_role FROM public.profiles WHERE id = caller_id;
+    
+    IF caller_role != 'admin' AND caller_id != p_user_id THEN
+        RAISE EXCEPTION 'No autorizado para cambiar esta contraseña';
+    END IF;
+    
+    UPDATE auth.users
+    SET encrypted_password = crypt(p_new_password, gen_salt('bf')),
+        updated_at = now()
+    WHERE id = p_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 5. Función para eliminar usuarios (Security Definer)
+CREATE OR REPLACE FUNCTION public.delete_profile_user(p_user_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    caller_id UUID;
+    caller_role TEXT;
+BEGIN
+    caller_id := auth.uid();
+    SELECT role INTO caller_role FROM public.profiles WHERE id = caller_id;
+    
+    IF caller_role != 'admin' THEN
+        RAISE EXCEPTION 'Solo los administradores pueden eliminar usuarios';
+    END IF;
+    
+    DELETE FROM auth.users WHERE id = p_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

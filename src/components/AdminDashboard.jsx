@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
 import KanbanBoard from './KanbanBoard';
@@ -20,10 +20,66 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [selectedDetailTicket, setSelectedDetailTicket] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
+    // Estados de cuenta y administración
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [profiles, setProfiles] = useState([]);
+    const [isCreatingUser, setIsCreatingUser] = useState(false);
+    const userMenuRef = useRef(null);
+
+    // Formulario Perfil
+    const [adminUsername, setAdminUsername] = useState(currentUser.username);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [profileError, setProfileError] = useState('');
+    const [profileSuccess, setProfileSuccess] = useState('');
+    const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+    // Formulario Crear Usuario
+    const [createUsername, setCreateUsername] = useState('');
+    const [createPassword, setCreatePassword] = useState('');
+    const [createRole, setCreateRole] = useState('farmacia');
+    const [createError, setCreateError] = useState('');
+    const [createSuccess, setCreateSuccess] = useState('');
+    const [isSavingNewUser, setIsSavingNewUser] = useState(false);
+
+    // Formulario Cambiar Contraseña de otros
+    const [selectedUserForReset, setSelectedUserForReset] = useState(null);
+    const [resetPasswordVal, setResetPasswordVal] = useState('');
+    const [resetError, setResetError] = useState('');
+    const [resetSuccess, setResetSuccess] = useState('');
+    const [isSavingReset, setIsSavingReset] = useState(false);
+
     useEffect(() => {
         loadTickets();
         fetchDbSize();
         // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Actualizar última conexión en base de datos
+    useEffect(() => {
+        const updateLastSeen = async () => {
+            try {
+                await supabase
+                    .from('profiles')
+                    .update({ last_seen_at: new Date().toISOString() })
+                    .eq('id', currentUser.id);
+            } catch (err) {
+                console.error('Error actualizando última conexión:', err);
+            }
+        };
+        updateLastSeen();
+    }, [currentUser.id]);
+
+    // Cerrar menú de usuario al hacer clic fuera
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+                setIsUserMenuOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const fetchDbSize = async () => {
@@ -151,6 +207,208 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
         loadTickets(); // Recargar lista al cerrar para refrescar posibles cambios
     };
 
+    // Cargar perfiles de usuarios
+    const loadProfiles = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('username', { ascending: true });
+            if (error) throw error;
+            setProfiles(data || []);
+        } catch (err) {
+            console.error('Error al cargar perfiles:', err);
+        }
+    };
+
+    // Actualizar perfil de administrador
+    const handleUpdateProfile = async (e) => {
+        e.preventDefault();
+        setProfileError('');
+        setProfileSuccess('');
+
+        if (!adminUsername.trim()) {
+            setProfileError('El nombre de usuario no puede estar vacío.');
+            return;
+        }
+
+        if (newPassword && newPassword !== confirmPassword) {
+            setProfileError('Las contraseñas no coinciden.');
+            return;
+        }
+
+        setIsSavingProfile(true);
+
+        try {
+            // 1. Si el username cambió, actualizarlo en profiles
+            if (adminUsername.trim().toUpperCase() !== currentUser.username.toUpperCase()) {
+                const { error: profileErr } = await supabase
+                    .from('profiles')
+                    .update({ username: adminUsername.trim().toUpperCase() })
+                    .eq('id', currentUser.id);
+
+                if (profileErr) throw profileErr;
+                currentUser.username = adminUsername.trim().toUpperCase();
+            }
+
+            // 2. Si se ingresó una nueva contraseña, actualizarla
+            if (newPassword) {
+                const { error: pwdError } = await supabase.rpc('update_user_password', {
+                    p_user_id: currentUser.id,
+                    p_new_password: newPassword
+                });
+
+                if (pwdError) throw pwdError;
+            }
+
+            setProfileSuccess('Perfil actualizado correctamente.');
+            setNewPassword('');
+            setConfirmPassword('');
+            
+            setTimeout(() => {
+                setIsProfileModalOpen(false);
+                setProfileSuccess('');
+            }, 1500);
+
+        } catch (err) {
+            console.error('Error al actualizar perfil admin:', err);
+            setProfileError(err.message || 'Error al guardar los cambios.');
+        } finally {
+            setIsSavingProfile(false);
+        }
+    };
+
+    // Crear nuevo usuario (Administrador)
+    const handleCreateUserSubmit = async (e) => {
+        e.preventDefault();
+        setCreateError('');
+        setCreateSuccess('');
+
+        if (!createUsername.trim()) {
+            setCreateError('El nombre de usuario no puede estar vacío.');
+            return;
+        }
+
+        if (!createPassword || createPassword.length < 4) {
+            setCreateError('La contraseña debe tener al menos 4 caracteres.');
+            return;
+        }
+
+        setIsSavingNewUser(true);
+
+        try {
+            const { error } = await supabase.rpc('create_profile_user', {
+                p_username: createUsername.trim().toLowerCase(),
+                p_password: createPassword,
+                p_role: createRole
+            });
+
+            if (error) throw error;
+
+            setCreateSuccess('Usuario creado exitosamente.');
+            setCreateUsername('');
+            setCreatePassword('');
+            setIsCreatingUser(false);
+            
+            await loadProfiles();
+
+            setTimeout(() => {
+                setCreateSuccess('');
+            }, 3000);
+
+        } catch (err) {
+            console.error('Error al crear usuario:', err);
+            setCreateError(err.message || 'Error al crear el perfil de usuario.');
+        } finally {
+            setIsSavingNewUser(false);
+        }
+    };
+
+    // Eliminar usuario
+    const handleDeleteUser = async (userToDelete) => {
+        if (userToDelete.id === currentUser.id) {
+            alert('No puedes eliminar tu propio usuario administrador.');
+            return;
+        }
+
+        if (!window.confirm(`¿Estás seguro de que deseas eliminar al usuario "${userToDelete.username}"?\nEsta acción es irreversible y eliminará todos sus tickets y mensajes.`)) {
+            return;
+        }
+
+        try {
+            const { error } = await supabase.rpc('delete_profile_user', {
+                p_user_id: userToDelete.id
+            });
+
+            if (error) throw error;
+
+            alert('Usuario eliminado correctamente.');
+            await loadProfiles();
+        } catch (err) {
+            console.error('Error al eliminar usuario:', err);
+            alert(err.message || 'No se pudo eliminar el usuario.');
+        }
+    };
+
+    // Restablecer contraseña de otro usuario
+    const handleResetPasswordSubmit = async (e) => {
+        e.preventDefault();
+        setResetError('');
+        setResetSuccess('');
+
+        if (!resetPasswordVal) {
+            setResetError('La contraseña no puede estar vacía.');
+            return;
+        }
+
+        setIsSavingReset(true);
+
+        try {
+            const { error } = await supabase.rpc('update_user_password', {
+                p_user_id: selectedUserForReset.id,
+                p_new_password: resetPasswordVal
+            });
+
+            if (error) throw error;
+
+            setResetSuccess('Contraseña restablecida correctamente.');
+            setResetPasswordVal('');
+            
+            setTimeout(() => {
+                setSelectedUserForReset(null);
+                setResetSuccess('');
+            }, 1500);
+
+        } catch (err) {
+            console.error('Error al restablecer contraseña:', err);
+            setResetError(err.message || 'Error al restablecer la contraseña.');
+        } finally {
+            setIsSavingReset(false);
+        }
+    };
+
+    // Formatear última conexión
+    const formatLastSeen = (isoString) => {
+        if (!isoString) return 'Nunca';
+        const date = new Date(isoString);
+        const diffMs = new Date() - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        if (diffMins < 1) return 'Ahora mismo';
+        if (diffMins < 60) return `Hace ${diffMins} min${diffMins > 1 ? 's' : ''}`;
+        
+        const diffHours = Math.floor(diffMins / 60);
+        if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+        
+        return date.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
     // Filtrado local
     const filteredTickets = tickets.filter(ticket => {
         const matchesSearch = ticket.pharmacy_name.toLowerCase().includes(search.toLowerCase().trim()) ||
@@ -187,20 +445,31 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
 
                 {/* Pill Derecho: DB Status + Toggle Tema + Logout */}
                 <div className="header-controls-pill">
-                    {/* Toggle de Vista: Lista / Kanban */}
-                    <button
-                        className="view-toggle-track"
-                        onClick={() => setViewType(prev => prev === 'list' ? 'kanban' : 'list')}
-                        title={viewType === 'list' ? 'Cambiar a vista Kanban' : 'Cambiar a vista Lista'}
-                        aria-label="Alternar vista"
-                    >
-                        <span className={`view-toggle-thumb ${viewType === 'kanban' ? 'active' : ''}`}>
-                            {viewType === 'list'
-                                ? <i className="fa-solid fa-list"></i>
-                                : <i className="fa-solid fa-table-columns"></i>
-                            }
-                        </span>
-                    </button>
+                    {/* Toggle de Vista: Lista / Kanban / Usuarios */}
+                    {viewType !== 'users' ? (
+                        <button
+                            className="view-toggle-track"
+                            onClick={() => setViewType(prev => prev === 'list' ? 'kanban' : 'list')}
+                            title={viewType === 'list' ? 'Cambiar a vista Kanban' : 'Cambiar a vista Lista'}
+                            aria-label="Alternar vista"
+                        >
+                            <span className={`view-toggle-thumb ${viewType === 'kanban' ? 'active' : ''}`}>
+                                {viewType === 'list'
+                                    ? <i className="fa-solid fa-list"></i>
+                                    : <i className="fa-solid fa-table-columns"></i>
+                                }
+                            </span>
+                        </button>
+                    ) : (
+                        <button
+                            className="btn btn-secondary btn-xs"
+                            style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                            onClick={() => setViewType('list')}
+                            title="Volver a solicitudes"
+                        >
+                            <i className="fa-solid fa-arrow-left"></i> Solicitudes
+                        </button>
+                    )}
 
                     <div className="header-divider"></div>
 
@@ -311,14 +580,46 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
 
                     <div className="header-divider"></div>
 
-                    {/* Logout Icon */}
-                    <button
-                        className="btn-logout-icon"
-                        onClick={onLogout}
-                        title="Cerrar sesión"
-                    >
-                        <i className="fa-solid fa-arrow-right-from-bracket"></i>
-                    </button>
+                    {/* Menú de Usuario */}
+                    <div className="user-menu-container" ref={userMenuRef}>
+                        <button
+                            className={`btn-user-menu ${isUserMenuOpen ? 'active' : ''}`}
+                            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                            title="Opciones de cuenta"
+                        >
+                            <i className="fa-solid fa-user-gear"></i>
+                        </button>
+                        {isUserMenuOpen && (
+                            <div className="user-menu-dropdown">
+                                <button 
+                                    className="user-menu-item"
+                                    onClick={() => {
+                                        setAdminUsername(currentUser.username);
+                                        setIsProfileModalOpen(true);
+                                        setIsUserMenuOpen(false);
+                                    }}
+                                >
+                                    <i className="fa-solid fa-user-pen"></i> Gestionar Perfil
+                                </button>
+                                <button 
+                                    className="user-menu-item"
+                                    onClick={() => {
+                                        setViewType('users');
+                                        loadProfiles();
+                                        setIsUserMenuOpen(false);
+                                    }}
+                                >
+                                    <i className="fa-solid fa-users-gear"></i> Gestionar Usuarios
+                                </button>
+                                <button 
+                                    className="user-menu-item logout"
+                                    onClick={onLogout}
+                                >
+                                    <i className="fa-solid fa-arrow-right-from-bracket"></i> Cerrar Sesión
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </header>
 
@@ -354,7 +655,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                     )}
 
                     {/* Listado en estilo tarjetas modernas */}
-                    {viewType === 'kanban' ? (
+                    {viewType === 'kanban' && (
                         <KanbanBoard 
                             tickets={tickets}
                             onOpenChat={handleOpenChat}
@@ -365,7 +666,9 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                             onStatusChange={handleStatusChange}
                             unreadTicketIds={unreadTicketIds}
                         />
-                    ) : (
+                    )}
+
+                    {viewType === 'list' && (
                         <div className="accordion-list">
                         {isLoading && tickets.length === 0 ? (
                             <div className="empty-state">
@@ -477,6 +780,202 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                         )}
                         </div>
                     )}
+
+                    {viewType === 'users' && (
+                        <div className="user-management-screen">
+                            <div className="user-management-header">
+                                <h2>
+                                    <i className="fa-solid fa-users-gear"></i> Gestión de Usuarios
+                                </h2>
+                                {!isCreatingUser && !selectedUserForReset && (
+                                    <button className="btn btn-primary" onClick={() => setIsCreatingUser(true)}>
+                                        <i className="fa-solid fa-user-plus"></i> Crear Nuevo Usuario
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className={`user-management-grid ${(isCreatingUser || selectedUserForReset) ? 'has-sidebar' : ''}`}>
+                                {/* Listado de usuarios */}
+                                <div className="user-management-card" style={{ flex: 1 }}>
+                                    <h3>
+                                        <i className="fa-solid fa-list-ul"></i> Listado de Perfiles
+                                    </h3>
+                                    <div className="user-list-table-container full-view">
+                                        <table className="user-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Nombre de Usuario</th>
+                                                    <th>Rol</th>
+                                                    <th>Creado el</th>
+                                                    <th>Última Conexión</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {profiles.map(p => (
+                                                    <tr key={p.id}>
+                                                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.username}</td>
+                                                        <td>
+                                                            <span className={`badge badge-${p.role}`} style={{ textTransform: 'capitalize' }}>
+                                                                {p.role}
+                                                            </span>
+                                                        </td>
+                                                        <td>{new Date(p.created_at).toLocaleDateString('es-ES')}</td>
+                                                        <td>{formatLastSeen(p.last_seen_at)}</td>
+                                                        <td>
+                                                            <div className="table-actions">
+                                                                <button 
+                                                                    className="btn-table-action"
+                                                                    onClick={() => {
+                                                                        setSelectedUserForReset(p);
+                                                                        setIsCreatingUser(false);
+                                                                        setResetError('');
+                                                                        setResetSuccess('');
+                                                                    }}
+                                                                    title="Restablecer Contraseña"
+                                                                >
+                                                                    <i className="fa-solid fa-key"></i> Pass
+                                                                </button>
+                                                                {p.id !== currentUser.id && (
+                                                                    <button 
+                                                                        className="btn-table-action delete"
+                                                                        onClick={() => handleDeleteUser(p)}
+                                                                        title="Eliminar Usuario"
+                                                                    >
+                                                                        <i className="fa-solid fa-trash-can"></i> Borrar
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Sidebar de acción activa: Crear o Restablecer */}
+                                {(isCreatingUser || selectedUserForReset) && (
+                                    <div className="user-management-card">
+                                        {isCreatingUser && (
+                                            <div className="user-form-card">
+                                                <h3><i className="fa-solid fa-user-plus"></i> Registrar Usuario</h3>
+                                                <form onSubmit={handleCreateUserSubmit}>
+                                                    <div className="input-group">
+                                                        <label htmlFor="create-username">Nombre de Usuario</label>
+                                                        <input 
+                                                            id="create-username"
+                                                            type="text" 
+                                                            placeholder="Ej: PFH002 o ADMIN2"
+                                                            value={createUsername}
+                                                            onChange={(e) => setCreateUsername(e.target.value)}
+                                                            required
+                                                            disabled={isSavingNewUser}
+                                                        />
+                                                    </div>
+                                                    <div className="input-group">
+                                                        <label htmlFor="create-password">Contraseña</label>
+                                                        <input 
+                                                            id="create-password"
+                                                            type="password" 
+                                                            placeholder="Mínimo 4 caracteres"
+                                                            value={createPassword}
+                                                            onChange={(e) => setCreatePassword(e.target.value)}
+                                                            required
+                                                            disabled={isSavingNewUser}
+                                                        />
+                                                    </div>
+                                                    <div className="input-group">
+                                                        <label htmlFor="create-role">Rol</label>
+                                                        <select
+                                                            id="create-role"
+                                                            value={createRole}
+                                                            onChange={(e) => setCreateRole(e.target.value)}
+                                                            required
+                                                            disabled={isSavingNewUser}
+                                                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-input)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '10px' }}
+                                                        >
+                                                            <option value="farmacia">Farmacia</option>
+                                                            <option value="admin">Administrador</option>
+                                                        </select>
+                                                    </div>
+
+                                                    {createError && (
+                                                        <div className="error-alert" style={{ marginTop: '12px' }}>
+                                                            <i className="fa-solid fa-triangle-exclamation"></i>
+                                                            <span>{createError}</span>
+                                                        </div>
+                                                    )}
+
+                                                    {createSuccess && (
+                                                        <div className="success-alert" style={{ marginTop: '12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '10px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <i className="fa-solid fa-circle-check"></i>
+                                                            <span>{createSuccess}</span>
+                                                        </div>
+                                                    )}
+
+                                                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                                                        <button type="submit" className="btn btn-success" style={{ flex: 1 }} disabled={isSavingNewUser}>
+                                                            <i className="fa-solid fa-user-check"></i> Registrar
+                                                        </button>
+                                                        <button type="button" className="btn btn-secondary" onClick={() => { setIsCreatingUser(false); setCreateError(''); }} disabled={isSavingNewUser}>
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        )}
+
+                                        {selectedUserForReset && (
+                                            <div className="user-form-card">
+                                                <h3><i className="fa-solid fa-key"></i> Restablecer Contraseña</h3>
+                                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                                                    Cambiando contraseña de <strong>{selectedUserForReset.username}</strong>.
+                                                </p>
+                                                <form onSubmit={handleResetPasswordSubmit}>
+                                                    <div className="input-group">
+                                                        <label htmlFor="reset-password">Nueva Contraseña</label>
+                                                        <input 
+                                                            id="reset-password"
+                                                            type="password" 
+                                                            placeholder="Introduce la nueva contraseña"
+                                                            value={resetPasswordVal}
+                                                            onChange={(e) => setResetPasswordVal(e.target.value)}
+                                                            required
+                                                            disabled={isSavingReset}
+                                                        />
+                                                    </div>
+
+                                                    {resetError && (
+                                                        <div className="error-alert" style={{ marginTop: '12px' }}>
+                                                            <i className="fa-solid fa-triangle-exclamation"></i>
+                                                            <span>{resetError}</span>
+                                                        </div>
+                                                    )}
+
+                                                    {resetSuccess && (
+                                                        <div className="success-alert" style={{ marginTop: '12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '10px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <i className="fa-solid fa-circle-check"></i>
+                                                            <span>{resetSuccess}</span>
+                                                        </div>
+                                                    )}
+
+                                                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                                                        <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isSavingReset}>
+                                                            <i className="fa-solid fa-floppy-disk"></i> Actualizar
+                                                        </button>
+                                                        <button type="button" className="btn btn-secondary" onClick={() => { setSelectedUserForReset(null); setResetError(''); }} disabled={isSavingReset}>
+                                                            Cancelar
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -563,6 +1062,76 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                     </div>
                 </div>
             )}
+
+            {/* MODAL 3: Gestionar Perfil */}
+            {isProfileModalOpen && (
+                <div className="modal-overlay" onClick={() => setIsProfileModalOpen(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="modal-close-btn" onClick={() => setIsProfileModalOpen(false)}>
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+                        <h3 style={{ marginBottom: '20px', fontSize: '1.3rem', fontWeight: '700' }}>
+                            <i className="fa-solid fa-user-pen"></i> Gestionar Perfil
+                        </h3>
+                        <form onSubmit={handleUpdateProfile}>
+                            <div className="input-group">
+                                <label htmlFor="profile-username">Nombre de Usuario</label>
+                                <input 
+                                    id="profile-username"
+                                    type="text" 
+                                    placeholder="Introduce tu nombre de usuario"
+                                    value={adminUsername}
+                                    onChange={(e) => setAdminUsername(e.target.value)}
+                                    required
+                                    disabled={isSavingProfile}
+                                />
+                            </div>
+                            <div className="input-group">
+                                <label htmlFor="profile-password">Nueva Contraseña (Opcional)</label>
+                                <input 
+                                    id="profile-password"
+                                    type="password" 
+                                    placeholder="Introduce tu nueva contraseña si deseas cambiarla" 
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    disabled={isSavingProfile}
+                                />
+                            </div>
+                            <div className="input-group">
+                                <label htmlFor="profile-confirm-password">Confirmar Nueva Contraseña</label>
+                                <input 
+                                    id="profile-confirm-password"
+                                    type="password" 
+                                    placeholder="Confirma tu nueva contraseña" 
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    disabled={isSavingProfile}
+                                />
+                            </div>
+                            
+                            {profileError && (
+                                <div className="error-alert" style={{ marginTop: '12px' }}>
+                                    <i className="fa-solid fa-triangle-exclamation"></i>
+                                    <span>{profileError}</span>
+                                </div>
+                            )}
+                            
+                            {profileSuccess && (
+                                <div className="success-alert" style={{ marginTop: '12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '10px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <i className="fa-solid fa-circle-check"></i>
+                                    <span>{profileSuccess}</span>
+                                </div>
+                            )}
+
+                            <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: '20px' }} disabled={isSavingProfile}>
+                                <i className="fa-solid fa-floppy-disk"></i> {isSavingProfile ? 'Guardando...' : 'Guardar Cambios'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* El modal antiguo de gestión de usuarios ha sido removido y transformado en una vista a pantalla completa */}
         </div>
     );
 }
