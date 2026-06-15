@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import SupabaseConfig from './components/SupabaseConfig';
 import Login from './components/Login';
@@ -40,6 +40,7 @@ export default function App() {
     }, []);
 
     const handleLoginSuccess = (user) => {
+        localStorage.setItem('ticket_system_session', JSON.stringify(user));
         setCurrentUser(user);
     };
 

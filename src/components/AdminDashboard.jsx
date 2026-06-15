@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
+import KanbanBoard from './KanbanBoard';
 
 
 
@@ -14,10 +15,14 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [isLoading, setIsLoading] = useState(false);
     const [expandedTicketId, setExpandedTicketId] = useState(null);
     const [dbStatus, setDbStatus] = useState(null);
+    const [viewType, setViewType] = useState('list'); // 'list' o 'kanban'
+    const [selectedDetailTicket, setSelectedDetailTicket] = useState(null);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
     useEffect(() => {
         loadTickets();
         fetchDbSize();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchDbSize = async () => {
@@ -80,6 +85,11 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                 const updated = data.find(t => t.id === activeTicket.id);
                 if (updated) setActiveTicket(updated);
             }
+            // Sincronizar ticket de detalle si estuviera abierto
+            if (selectedDetailTicket) {
+                const updated = data.find(t => t.id === selectedDetailTicket.id);
+                if (updated) setSelectedDetailTicket(updated);
+            }
         } catch (e) {
             console.error('Error al cargar tickets:', e);
         } finally {
@@ -100,6 +110,9 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
             setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus } : t));
             if (activeTicket && activeTicket.id === ticketId) {
                 setActiveTicket(prev => ({ ...prev, status: newStatus }));
+            }
+            if (selectedDetailTicket && selectedDetailTicket.id === ticketId) {
+                setSelectedDetailTicket(prev => ({ ...prev, status: newStatus }));
             }
 
             // Registrar mensaje del sistema informando del cambio
@@ -166,8 +179,30 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                     </div>
                 </div>
 
+                {/* Título Central */}
+                <div className="header-title-pill">
+                    <h1>Panel de Administración</h1>
+                </div>
+
                 {/* Pill Derecho: DB Status + Toggle Tema + Logout */}
                 <div className="header-controls-pill">
+                    {/* Toggle de Vista: Lista / Kanban */}
+                    <button
+                        className="view-toggle-track"
+                        onClick={() => setViewType(prev => prev === 'list' ? 'kanban' : 'list')}
+                        title={viewType === 'list' ? 'Cambiar a vista Kanban' : 'Cambiar a vista Lista'}
+                        aria-label="Alternar vista"
+                    >
+                        <span className={`view-toggle-thumb ${viewType === 'kanban' ? 'active' : ''}`}>
+                            {viewType === 'list'
+                                ? <i className="fa-solid fa-list"></i>
+                                : <i className="fa-solid fa-table-columns"></i>
+                            }
+                        </span>
+                    </button>
+
+                    <div className="header-divider"></div>
+
                     {/* Indicadores de Base de Datos y Storage */}
                     {dbStatus && (
                         <>
@@ -290,37 +325,47 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
             <div className="dashboard-container">
                 <div className="modern-layout">
                     {/* Barra de Acciones y Filtros */}
-                    <div className="dashboard-actions-bar" style={{ gap: '20px', flexWrap: 'wrap' }}>
-                        <div className="dashboard-title-area">
-                            <h2>Panel de Administración</h2>
-                            <p>Gestión global de incidentes y chat de soporte directo con las farmacias.</p>
+                    {viewType === 'list' && (
+                        <div className="dashboard-actions-bar" style={{ gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                            <div className="flex-row gap-12 align-center flex-wrap">
+                                <input 
+                                    type="text" 
+                                    placeholder="🔍 Buscar farmacia o ticket..." 
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    style={{ maxWidth: '220px', padding: '8px 12px', fontSize: '0.85rem' }}
+                                />
+                                <select 
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    style={{ maxWidth: '160px', padding: '8px 12px', fontSize: '0.85rem' }}
+                                >
+                                    <option value="ALL">Todos los estados</option>
+                                    <option value="Aceptado">Aceptado</option>
+                                    <option value="En revision">En revisión</option>
+                                    <option value="Resuelto">Resuelto</option>
+                                </select>
+                                <button className="btn btn-secondary btn-icon-only" onClick={loadTickets} title="Actualizar lista">
+                                    <i className="fa-solid fa-rotate"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex-row gap-12 align-center flex-wrap">
-                            <input 
-                                type="text" 
-                                placeholder="🔍 Buscar farmacia o ticket..." 
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                style={{ maxWidth: '220px', padding: '8px 12px', fontSize: '0.85rem' }}
-                            />
-                            <select 
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                style={{ maxWidth: '160px', padding: '8px 12px', fontSize: '0.85rem' }}
-                            >
-                                <option value="ALL">Todos los estados</option>
-                                <option value="Aceptado">Aceptado</option>
-                                <option value="En revision">En revisión</option>
-                                <option value="Resuelto">Resuelto</option>
-                            </select>
-                            <button className="btn btn-secondary btn-icon-only" onClick={loadTickets} title="Actualizar lista">
-                                <i className="fa-solid fa-rotate"></i>
-                            </button>
-                        </div>
-                    </div>
+                    )}
 
                     {/* Listado en estilo tarjetas modernas */}
-                    <div className="accordion-list">
+                    {viewType === 'kanban' ? (
+                        <KanbanBoard 
+                            tickets={tickets}
+                            onOpenChat={handleOpenChat}
+                            onOpenDetails={(ticket) => {
+                                setSelectedDetailTicket(ticket);
+                                setIsDetailModalOpen(true);
+                            }}
+                            onStatusChange={handleStatusChange}
+                            unreadTicketIds={unreadTicketIds}
+                        />
+                    ) : (
+                        <div className="accordion-list">
                         {isLoading && tickets.length === 0 ? (
                             <div className="empty-state">
                                 <i className="fa-solid fa-circle-notch fa-spin"></i>
@@ -431,7 +476,8 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                 );
                             })
                         )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -448,6 +494,78 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                             isAdmin={true}
                             onStatusChange={handleStatusChange}
                         />
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL: Detalles del Ticket */}
+            {isDetailModalOpen && selectedDetailTicket && (
+                <div className="modal-overlay" onClick={() => setIsDetailModalOpen(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <button className="modal-close-btn" onClick={() => setIsDetailModalOpen(false)}>
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+                        <div className="detail-modal-layout">
+                            <div className="detail-modal-header">
+                                <h3>Detalles de Solicitud</h3>
+                                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                                    Ticket {selectedDetailTicket.ticket_number ? `TK-${selectedDetailTicket.ticket_number}` : `#${selectedDetailTicket.id}`}
+                                </p>
+                            </div>
+                            
+                            <div className="detail-meta-grid">
+                                <div className="detail-meta-item">
+                                    <label>Farmacia Solicitante</label>
+                                    <span>{selectedDetailTicket.pharmacy_name}</span>
+                                </div>
+                                <div className="detail-meta-item">
+                                    <label>Fecha de Emisión</label>
+                                    <span>
+                                        {new Date(selectedDetailTicket.created_at).toLocaleString('es-ES', {
+                                            day: '2-digit',
+                                            month: '2-digit',
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </span>
+                                </div>
+                                <div className="detail-meta-item">
+                                    <label>Estado</label>
+                                    <select 
+                                        value={selectedDetailTicket.status}
+                                        onChange={(e) => handleStatusChange(selectedDetailTicket.id, e.target.value)}
+                                        className="select-status"
+                                    >
+                                        <option value="Aceptado">Aceptado</option>
+                                        <option value="En revision">En revisión</option>
+                                        <option value="Resuelto">Resuelto</option>
+                                    </select>
+                                </div>
+                                <div className="detail-meta-item">
+                                    <label>Chat de Soporte</label>
+                                    <button 
+                                        className="btn btn-primary btn-sm"
+                                        style={{ width: '100%', padding: '4px', fontSize: '0.8rem', marginTop: '2px' }}
+                                        onClick={() => {
+                                            setIsDetailModalOpen(false);
+                                            handleOpenChat(selectedDetailTicket);
+                                        }}
+                                    >
+                                        <i className="fa-regular fa-comments"></i> Abrir Chat
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="detail-description-box">
+                                <h5>Descripción del Problema</h5>
+                                <p>{selectedDetailTicket.description}</p>
+                            </div>
+
+                            <div className="detail-modal-footer">
+                                <button className="btn btn-secondary" onClick={() => setIsDetailModalOpen(false)}>Cerrar</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
 
@@ -20,6 +20,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
 
     useEffect(() => {
         loadTickets();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Suscribirse a mensajes globales para capturar alertas en tiempo real (mensajes nuevos y cambios de estado)

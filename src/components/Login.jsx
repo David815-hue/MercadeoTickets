@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { supabase, clearSupabaseConfig } from '../supabaseClient';
 
 export default function Login({ onLoginSuccess, currentTheme, onToggleTheme }) {

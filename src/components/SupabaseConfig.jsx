@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { saveSupabaseConfig } from '../supabaseClient';
 
 export default function SupabaseConfig() {

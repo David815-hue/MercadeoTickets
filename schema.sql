@@ -216,4 +216,22 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.get_db_size() TO authenticated;
 
+-- ==========================================
+-- CONFIGURACIÓN DE STORAGE PARA ADJUNTOS
+-- ==========================================
 
+-- Crear el bucket de almacenamiento para adjuntos si no existe
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('ticket-attachments', 'ticket-attachments', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Habilitar políticas de seguridad RLS en storage.objects para el bucket 'ticket-attachments'
+CREATE POLICY "Permitir subida a usuarios autenticados"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'ticket-attachments');
+
+CREATE POLICY "Permitir lectura de adjuntos a usuarios autenticados"
+ON storage.objects FOR SELECT
+TO authenticated
+USING (bucket_id = 'ticket-attachments');

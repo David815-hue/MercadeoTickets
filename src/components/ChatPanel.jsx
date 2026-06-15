@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 
@@ -8,7 +8,6 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
     const [isLoading, setIsLoading] = useState(false);
     const [text, setText] = useState('');
     const [isSending, setIsSending] = useState(false);
-    const [selectedImage, setSelectedImage] = useState(null);
     const [compressedBlob, setCompressedBlob] = useState(null);
     const [compressedSizeKb, setCompressedSizeKb] = useState(0);
     const [previewUrl, setPreviewUrl] = useState('');
@@ -46,6 +45,7 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
         return () => {
             channel.unsubscribe();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ticket]);
 
     // Hacer scroll automático al recibir mensajes
@@ -157,7 +157,7 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                 const fileName = `${Date.now()}_comprimida.jpg`;
                 const filePath = `tickets/${ticket.id}/${fileName}`;
 
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { error: uploadError } = await supabase.storage
                     .from('ticket-attachments')
                     .upload(filePath, compressedBlob, {
                         contentType: 'image/jpeg'
@@ -205,11 +205,6 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
         } finally {
             setIsSending(false);
         }
-    };
-
-    const escapeHTML = (str) => {
-        if (!str) return '';
-        return str; // React ya escapa de forma segura por defecto
     };
 
     return (
