@@ -4,6 +4,7 @@ import ChatPanel from './ChatPanel';
 import KanbanBoard from './KanbanBoard';
 import CustomStatusDropdown from './CustomStatusDropdown';
 import CustomFilterDropdown from './CustomFilterDropdown';
+import { toast } from 'sonner';
 
 
 
@@ -20,6 +21,11 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [viewType, setViewType] = useState('list'); // 'list' o 'kanban'
     const [selectedDetailTicket, setSelectedDetailTicket] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+    // Estados de rechazo de tickets
+    const [rejectionTicketId, setRejectionTicketId] = useState(null);
+    const [rejectionReasonType, setRejectionReasonType] = useState('');
+    const [rejectionCustomText, setRejectionCustomText] = useState('');
 
     // Estados de cuenta y administración
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -156,22 +162,36 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     };
 
     const handleStatusChange = async (ticketId, newStatus) => {
+        if (newStatus === 'Recibido') {
+            toast.warning('No puedes cambiar el estado de un ticket a Recibido.');
+            return;
+        }
+
+        if (newStatus === 'Rechazado') {
+            setRejectionTicketId(ticketId);
+            setRejectionReasonType('');
+            setRejectionCustomText('');
+            return;
+        }
+
         try {
             const { error } = await supabase
                 .from('tickets')
-                .update({ status: newStatus })
+                .update({ status: newStatus, rejection_reason: null })
                 .eq('id', ticketId);
 
             if (error) throw error;
 
             // Actualizar en listas locales
-            setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus } : t));
+            setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus, rejection_reason: null } : t));
             if (activeTicket && activeTicket.id === ticketId) {
-                setActiveTicket(prev => ({ ...prev, status: newStatus }));
+                setActiveTicket(prev => ({ ...prev, status: newStatus, rejection_reason: null }));
             }
             if (selectedDetailTicket && selectedDetailTicket.id === ticketId) {
-                setSelectedDetailTicket(prev => ({ ...prev, status: newStatus }));
+                setSelectedDetailTicket(prev => ({ ...prev, status: newStatus, rejection_reason: null }));
             }
+
+            toast.success(`Estado del ticket actualizado a "${newStatus}"`);
 
             // Registrar mensaje del sistema informando del cambio
             await supabase
@@ -185,7 +205,71 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
 
         } catch (e) {
             console.error('Error al cambiar estado:', e);
-            alert('No se pudo actualizar el estado del ticket.');
+            toast.error('No se pudo actualizar el estado del ticket.');
+        }
+    };
+
+    const handleConfirmRejection = async () => {
+        if (!rejectionTicketId) return;
+
+        if (!rejectionReasonType) {
+            toast.error('Por favor seleccione un motivo de rechazo.');
+            return;
+        }
+
+        let finalReason = rejectionReasonType;
+        if (rejectionReasonType === 'Otros') {
+            if (!rejectionCustomText.trim()) {
+                toast.error('Por favor escriba el motivo del rechazo.');
+                return;
+            }
+            if (rejectionCustomText.trim().length > 40) {
+                toast.error('El motivo personalizado no puede exceder los 40 caracteres.');
+                return;
+            }
+            finalReason = rejectionCustomText.trim();
+        }
+
+        try {
+            const { error } = await supabase
+                .from('tickets')
+                .update({ 
+                    status: 'Rechazado',
+                    rejection_reason: finalReason
+                })
+                .eq('id', rejectionTicketId);
+
+            if (error) throw error;
+
+            // Actualizar en listas locales
+            setTickets(prev => prev.map(t => t.id === rejectionTicketId ? { ...t, status: 'Rechazado', rejection_reason: finalReason } : t));
+            if (activeTicket && activeTicket.id === rejectionTicketId) {
+                setActiveTicket(prev => ({ ...prev, status: 'Rechazado', rejection_reason: finalReason }));
+            }
+            if (selectedDetailTicket && selectedDetailTicket.id === rejectionTicketId) {
+                setSelectedDetailTicket(prev => ({ ...prev, status: 'Rechazado', rejection_reason: finalReason }));
+            }
+
+            toast.success('El ticket ha sido rechazado correctamente.');
+
+            // Registrar mensaje del sistema informando del cambio
+            await supabase
+                .from('messages')
+                .insert({
+                    ticket_id: rejectionTicketId,
+                    sender_id: currentUser.id,
+                    sender_name: 'Sistema',
+                    message_text: `El estado del ticket ha sido cambiado a: **Rechazado**\nMotivo: ${finalReason}`
+                });
+
+            // Cerrar modal
+            setRejectionTicketId(null);
+            setRejectionReasonType('');
+            setRejectionCustomText('');
+
+        } catch (e) {
+            console.error('Error al rechazar ticket:', e);
+            toast.error('No se pudo rechazar el ticket.');
         }
     };
 
@@ -328,7 +412,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     // Eliminar usuario
     const handleDeleteUser = async (userToDelete) => {
         if (userToDelete.id === currentUser.id) {
-            alert('No puedes eliminar tu propio usuario administrador.');
+            toast.warning('No puedes eliminar tu propio usuario administrador.');
             return;
         }
 
@@ -343,11 +427,11 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
 
             if (error) throw error;
 
-            alert('Usuario eliminado correctamente.');
+            toast.success('Usuario eliminado correctamente.');
             await loadProfiles();
         } catch (err) {
             console.error('Error al eliminar usuario:', err);
-            alert(err.message || 'No se pudo eliminar el usuario.');
+            toast.error(err.message || 'No se pudo eliminar el usuario.');
         }
     };
 
@@ -625,8 +709,8 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
             </header>
 
             {/* Dashboard Container */}
-            <div className="dashboard-container">
-                <div className="modern-layout">
+            <div className={`dashboard-container ${viewType === 'kanban' ? 'kanban-mode' : ''}`}>
+                <div className={`modern-layout ${viewType === 'kanban' ? 'kanban-layout' : ''}`}>
                     {/* Barra de Acciones y Filtros */}
                     {viewType === 'list' && (
                         <div className="dashboard-actions-bar" style={{ gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -715,76 +799,100 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                     >
                                         {/* Cabecera del acordeón */}
                                         <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>
-                                            <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center' }}>
-                                                <span className="accordion-ticket-id">
-                                                    {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}
-                                                </span>
-                                                <span 
-                                                    className="accordion-ticket-pharmacy" 
-                                                    style={{ 
-                                                        color: 'var(--text-primary)', 
-                                                        marginLeft: '12px', 
-                                                        fontWeight: '700',
-                                                        fontSize: '0.95rem',
-                                                        flexShrink: 0
-                                                    }}
-                                                >
-                                                    <i className="fa-solid fa-hospital" style={{ color: 'var(--color-primary)', marginRight: '6px' }}></i>
-                                                    {ticket.pharmacy_name}
-                                                </span>
-                                                {hasUnread && <span className="badge-unread" style={{ marginLeft: '8px', flexShrink: 0 }}>Nuevo Mensaje</span>}
-                                                <span 
-                                                    className="accordion-ticket-desc" 
-                                                    style={{ 
-                                                        color: 'var(--text-secondary)', 
-                                                        marginLeft: '16px', 
-                                                        fontSize: '0.9rem',
-                                                        fontWeight: '500',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        whiteSpace: 'nowrap'
-                                                    }}
-                                                >
-                                                    — {ticket.description}
-                                                </span>
-                                            </div>
-                                            <div className="accordion-header-right">
-                                                {/* Alerta roja pulsante */}
-                                                {hasUnread && (
-                                                    <span 
-                                                        className="pulsing-alert-dot" 
-                                                        style={{ position: 'relative', top: 'auto', right: 'auto', marginRight: '8px' }}
-                                                    ></span>
-                                                )}
-                                                <span className={`badge status-pill status-pill-${ticket.status.toLowerCase().replace(' ', '_')}`}>
-                                                    {ticket.status}
-                                                </span>
-                                                <i className="fa-solid fa-chevron-down accordion-chevron"></i>
-                                            </div>
+                                             <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                                 <span className="accordion-ticket-id">
+                                                     {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}
+                                                 </span>
+                                                 <span 
+                                                     className="accordion-ticket-pharmacy" 
+                                                     style={{ 
+                                                         color: 'var(--text-primary)', 
+                                                         fontWeight: '700',
+                                                         fontSize: '0.95rem',
+                                                         flexShrink: 0
+                                                     }}
+                                                 >
+                                                     <i className="fa-solid fa-hospital" style={{ color: 'var(--color-primary)', marginRight: '6px' }}></i>
+                                                     {ticket.pharmacy_name}
+                                                 </span>
+                                                 {hasUnread && <span className="badge-unread" style={{ flexShrink: 0 }}>Nuevo Mensaje</span>}
+                                                 {ticket.priority && (
+                                                     <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase()}`} style={{ flexShrink: 0 }}>
+                                                         <i className="fa-solid fa-circle-exclamation"></i>
+                                                         {ticket.priority}
+                                                     </span>
+                                                 )}
+                                                 {ticket.request_type && (
+                                                     <span className="type-badge-pill" style={{ flexShrink: 0 }}>
+                                                         <i className={getRequestTypeIcon(ticket.request_type)}></i>
+                                                         {ticket.request_type}
+                                                     </span>
+                                                 )}
+                                                 <span 
+                                                     className="accordion-ticket-desc" 
+                                                     style={{ 
+                                                         color: 'var(--text-secondary)', 
+                                                         fontSize: '0.9rem', 
+                                                         fontWeight: '500'
+                                                     }}
+                                                 >
+                                                     — {ticket.description}
+                                                 </span>
+                                             </div>
+                                             <div className="accordion-header-right">
+                                                 {hasUnread && (
+                                                     <span 
+                                                         className="pulsing-alert-dot" 
+                                                         style={{ position: 'relative', top: 'auto', right: 'auto', marginRight: '8px' }}
+                                                     ></span>
+                                                 )}
+                                                 <span className={`badge status-pill status-pill-${ticket.status.toLowerCase().replace(' ', '_')}`}>
+                                                     {ticket.status}
+                                                 </span>
+                                                 <i className="fa-solid fa-chevron-down accordion-chevron"></i>
+                                             </div>
                                         </div>
 
                                         {/* Cuerpo expandible */}
                                         {isExpanded && (
-                                            <div className="accordion-body-row">
-                                                <span className="accordion-body-date">
-                                                    <i className="fa-regular fa-clock"></i> {fecha}
-                                                </span>
-                                                <div className="accordion-body-status-ctrl" onClick={(e) => e.stopPropagation()}>
-                                                    <span className="accordion-body-status-label">Estado</span>
-                                                    <CustomStatusDropdown 
-                                                        value={ticket.status}
-                                                        onChange={(val) => handleStatusChange(ticket.id, val)}
-                                                    />
-                                                </div>
-                                                <button 
-                                                    className={`btn ${hasUnread ? 'btn-danger' : 'btn-primary'} btn-sm unread-badge-container`}
-                                                    onClick={() => handleOpenChat(ticket)}
-                                                >
-                                                    <i className="fa-regular fa-comments"></i>
-                                                    <span>Interactuar</span>
-                                                    {hasUnread && <span className="pulsing-alert-dot"></span>}
-                                                </button>
-                                            </div>
+                                             <div className="accordion-body" style={{ paddingTop: '20px' }}>
+                                                 {ticket.status === 'Rechazado' && ticket.rejection_reason && (
+                                                     <div className="rejection-reason-banner" style={{ marginBottom: '16px' }}>
+                                                         <i className="fa-solid fa-circle-xmark"></i>
+                                                         <div>
+                                                             <strong>Motivo de rechazo:</strong> {ticket.rejection_reason}
+                                                         </div>
+                                                     </div>
+                                                 )}
+                                                 {ticket.request_type ? (
+                                                     renderStructuredDetails(ticket)
+                                                 ) : (
+                                                     <div className="detail-description-box" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+                                                         <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Descripción</h5>
+                                                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
+                                                     </div>
+                                                 )}
+                                                 <div className="accordion-body-row" style={{ padding: '16px 0 0 0', borderTop: '1px solid var(--border-color)', marginTop: '8px' }}>
+                                                     <span className="accordion-body-date">
+                                                         <i className="fa-regular fa-clock"></i> {fecha}
+                                                     </span>
+                                                     <div className="accordion-body-status-ctrl" onClick={(e) => e.stopPropagation()}>
+                                                         <span className="accordion-body-status-label">Estado</span>
+                                                         <CustomStatusDropdown 
+                                                             value={ticket.status}
+                                                             onChange={(val) => handleStatusChange(ticket.id, val)}
+                                                         />
+                                                     </div>
+                                                     <button 
+                                                         className={`btn ${hasUnread ? 'btn-danger' : 'btn-primary'} btn-sm unread-badge-container`}
+                                                         onClick={() => handleOpenChat(ticket)}
+                                                     >
+                                                         <i className="fa-regular fa-comments"></i>
+                                                         <span>Interactuar</span>
+                                                         {hasUnread && <span className="pulsing-alert-dot"></span>}
+                                                     </button>
+                                                 </div>
+                                             </div>
                                         )}
                                     </div>
                                 );
@@ -1062,10 +1170,23 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                 </div>
                             </div>
 
-                            <div className="detail-description-box">
-                                <h5>Descripción del Problema</h5>
-                                <p>{selectedDetailTicket.description}</p>
-                            </div>
+                            {selectedDetailTicket.status === 'Rechazado' && selectedDetailTicket.rejection_reason && (
+                                <div className="rejection-reason-banner" style={{ marginBottom: '16px' }}>
+                                    <i className="fa-solid fa-circle-xmark"></i>
+                                    <div>
+                                        <strong>Motivo de rechazo:</strong> {selectedDetailTicket.rejection_reason}
+                                    </div>
+                                </div>
+                            )}
+
+                            {selectedDetailTicket.request_type ? (
+                                renderStructuredDetails(selectedDetailTicket)
+                            ) : (
+                                <div className="detail-description-box">
+                                    <h5>Descripción del Problema</h5>
+                                    <p>{selectedDetailTicket.description}</p>
+                                </div>
+                            )}
 
                             <div className="detail-modal-footer">
                                 <button className="btn btn-secondary" onClick={() => setIsDetailModalOpen(false)}>Cerrar</button>
@@ -1143,7 +1264,270 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                 </div>
             )}
 
+            {/* MODAL 4: Motivo de Rechazo */}
+            {rejectionTicketId && (
+                <div className="modal-overlay" onClick={() => setRejectionTicketId(null)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+                        <button className="modal-close-btn" onClick={() => setRejectionTicketId(null)}>
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+                        <h3 style={{ marginBottom: '20px', fontSize: '1.3rem', fontWeight: '700', color: 'var(--color-danger)' }}>
+                            <i className="fa-solid fa-circle-xmark"></i> Rechazar Solicitud
+                        </h3>
+                        
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                            Por favor, seleccione el motivo por el cual está rechazando esta solicitud:
+                        </p>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                            {[
+                                'Presupuesto',
+                                'No aplica por estrategia',
+                                'Falta de Aprobacion',
+                                'Otros'
+                            ].map((reason) => (
+                                <label 
+                                    key={reason}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        padding: '12px 16px',
+                                        borderRadius: '10px',
+                                        background: 'rgba(255, 255, 255, 0.02)',
+                                        border: `1px solid ${rejectionReasonType === reason ? 'var(--color-danger)' : 'var(--border-color)'}`,
+                                        cursor: 'pointer',
+                                        transition: 'var(--transition-smooth)'
+                                    }}
+                                    className="rejection-option-label"
+                                >
+                                    <input 
+                                        type="radio" 
+                                        name="rejection-reason" 
+                                        value={reason} 
+                                        checked={rejectionReasonType === reason}
+                                        onChange={() => setRejectionReasonType(reason)}
+                                        style={{ accentColor: 'var(--color-danger)', cursor: 'pointer' }}
+                                    />
+                                    <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: '500' }}>
+                                        {reason === 'Falta de Aprobacion' ? 'Falta de Aprobación' : reason}
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+
+                        {rejectionReasonType === 'Otros' && (
+                            <div className="input-group" style={{ marginBottom: '20px' }}>
+                                <label htmlFor="rejection-custom-text" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Escriba el motivo personalizado:</label>
+                                <textarea 
+                                    id="rejection-custom-text"
+                                    value={rejectionCustomText}
+                                    onChange={(e) => setRejectionCustomText(e.target.value)}
+                                    maxLength={40}
+                                    rows={2}
+                                    placeholder="Escriba aquí (máx. 40 caracteres)..."
+                                    style={{ width: '100%', resize: 'none' }}
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                    {rejectionCustomText.length}/40 caracteres
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                            <button className="btn btn-secondary" onClick={() => setRejectionTicketId(null)}>
+                                Cancelar
+                            </button>
+                            <button className="btn btn-danger" onClick={handleConfirmRejection}>
+                                Confirmar Rechazo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* El modal antiguo de gestión de usuarios ha sido removido y transformado en una vista a pantalla completa */}
+        </div>
+    );
+}
+
+// ==========================================
+// FUNCIONES AUXILIARES Y RENDERIZADORES
+// ==========================================
+
+function getRequestTypeIcon(type) {
+    if (!type) return 'fa-solid fa-circle-info';
+    const t = type.toLowerCase();
+    if (t.includes('artes') || t.includes('digital')) return 'fa-solid fa-laptop-code';
+    if (t.includes('rotulación interna') || t.includes('interna')) return 'fa-solid fa-sheet-plastic';
+    if (t.includes('impresión') || t.includes('impresion')) return 'fa-solid fa-print';
+    if (t.includes('recetario')) return 'fa-solid fa-file-medical';
+    if (t.includes('insumo') || t.includes('jornada') || t.includes('utilería') || t.includes('activacion')) return 'fa-solid fa-kit-medical';
+    if (t.includes('rotulación externa') || t.includes('externa')) return 'fa-solid fa-store';
+    return 'fa-solid fa-file-lines';
+}
+
+function getFileIcon(filename) {
+    if (!filename) return 'fa-regular fa-file';
+    const ext = filename.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return 'fa-regular fa-file-image';
+    if (['pdf'].includes(ext)) return 'fa-regular fa-file-pdf';
+    if (['doc', 'docx'].includes(ext)) return 'fa-regular fa-file-word';
+    if (['xls', 'xlsx'].includes(ext)) return 'fa-regular fa-file-excel';
+    if (['ppt', 'pptx'].includes(ext)) return 'fa-regular fa-file-powerpoint';
+    if (['zip', 'rar', 'tar', 'gz'].includes(ext)) return 'fa-regular fa-file-zipper';
+    if (['mp3', 'wav', 'ogg'].includes(ext)) return 'fa-regular fa-file-audio';
+    if (['mp4', 'avi', 'mov', 'mkv'].includes(ext)) return 'fa-regular fa-file-video';
+    return 'fa-regular fa-file';
+}
+
+function formatBytes(bytes, decimals = 2) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function renderStructuredDetails(ticket) {
+    if (!ticket.request_type) return null;
+
+    const formData = ticket.form_data || {};
+    
+    const getReadableLabel = (key) => {
+        const labels = {
+            tipoMaterial: 'Tipo de Material Digital',
+            medidas: 'Medidas',
+            medidasEspecificas: 'Medidas Específicas',
+            informacionMaterial: 'Información del Material',
+            incluirTelefono: 'Contacto a Incluir',
+            tipoRotulacion: 'Tipo de Rotulación',
+            detalleTexto: 'Detalle / Texto',
+            tipoMaterialImpreso: 'Tipo de Material Impreso',
+            tamanoRequerido: 'Tamaño Requerido',
+            cantidadRequerida: 'Cantidad Requerida',
+            indicacionesDiseno: 'Indicaciones de Diseño',
+            tipoRecetario: 'Tipo de Recetario',
+            nombreMedico: 'Nombre y Especialidad del Médico',
+            codigoColegiado: 'Código de Colegiado / Registro',
+            ubicacionClinica: 'Ubicación / Clínica',
+            informacionContacto: 'Información de Contacto',
+            insumos: 'Insumos Solicitados',
+            insumosOtros: 'Otros Insumos',
+            fechaEvento: 'Fecha del Evento',
+            ubicacionEvento: 'Ubicación de la Actividad',
+            objetivoUso: 'Objetivo del Evento',
+            tipoRotulacionExterna: 'Tipo de Rotulación Externa',
+            estadoFachada: 'Estado de la Fachada'
+        };
+        return labels[key] || key;
+    };
+
+    const formDataEntries = Object.entries(formData).filter(([key]) => key !== '_type');
+
+    return (
+        <div className="structured-details-section">
+            <div className="structured-details-title">
+                <i className={getRequestTypeIcon(ticket.request_type)}></i>
+                <span>Detalles de Solicitud ({ticket.request_type})</span>
+            </div>
+            
+            <div className="structured-details-grid">
+                <div className="structured-detail-item">
+                    <span className="structured-detail-label">Rol del Solicitante</span>
+                    <span className="structured-detail-value">{ticket.requester_role || 'No especificado'}</span>
+                </div>
+                
+                <div className="structured-detail-item">
+                    <span className="structured-detail-label">Prioridad</span>
+                    <span className={`structured-detail-value priority-val-${(ticket.priority || 'Normal').toLowerCase()}`}>
+                        {ticket.priority || 'Normal'}
+                    </span>
+                </div>
+                
+                <div className="structured-detail-item full-width">
+                    <span className="structured-detail-label">Objetivo</span>
+                    <span className="structured-detail-value">{ticket.objective || ticket.description}</span>
+                </div>
+                
+                {ticket.additional_info && (
+                    <div className="structured-detail-item full-width">
+                        <span className="structured-detail-label">Información Adicional</span>
+                        <span className="structured-detail-value">{ticket.additional_info}</span>
+                    </div>
+                )}
+                
+                {formDataEntries.map(([key, val]) => {
+                    if (val === undefined || val === null || val === '') return null;
+                    
+                    const label = getReadableLabel(key);
+                    
+                    if (Array.isArray(val)) {
+                        return (
+                            <div key={key} className="structured-detail-item full-width">
+                                <span className="structured-detail-label">{label}</span>
+                                <div className="supplies-checked-list">
+                                    {val.map((item, idx) => (
+                                        <span key={idx} className="supply-checked-badge">
+                                            <i className="fa-solid fa-check"></i>
+                                            {item}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    }
+                    
+                    const isFullWidth = ['informacionMaterial', 'detalleTexto', 'indicacionesDiseno', 'informacionContacto', 'objetivoUso', 'estadoFachada'].includes(key);
+                    
+                    return (
+                        <div key={key} className={`structured-detail-item ${isFullWidth ? 'full-width' : ''}`}>
+                            <span className="structured-detail-label">{label}</span>
+                            <span className="structured-detail-value" style={{ whiteSpace: 'pre-wrap' }}>{val}</span>
+                        </div>
+                    );
+                })}
+
+                {ticket.attachments && ticket.attachments.length > 0 && (
+                    <div className="structured-detail-item full-width" style={{ marginTop: '10px' }}>
+                        <span className="structured-detail-label">
+                            <i className="fa-solid fa-paperclip" style={{ marginRight: '4px' }}></i>
+                            Archivos Adjuntos ({ticket.attachments.length})
+                        </span>
+                        <div className="wizard-file-list" style={{ marginTop: '8px' }}>
+                            {ticket.attachments.map((file, idx) => (
+                                <a 
+                                    key={idx} 
+                                    href={file.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="wizard-file-item"
+                                    style={{ textDecoration: 'none', cursor: 'pointer' }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="wizard-file-info">
+                                        <i className={getFileIcon(file.name)}></i>
+                                        <div className="wizard-file-meta">
+                                            <span className="wizard-file-name" style={{ color: 'var(--border-focus)' }}>
+                                                {file.name}
+                                            </span>
+                                            {file.size && (
+                                                <span className="wizard-file-size">
+                                                    {formatBytes(file.size)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="btn-remove-file" style={{ color: 'var(--border-focus)' }}>
+                                        <i className="fa-solid fa-arrow-down-long"></i>
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

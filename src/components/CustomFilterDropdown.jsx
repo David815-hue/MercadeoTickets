@@ -6,9 +6,12 @@ export default function CustomFilterDropdown({ value, onChange }) {
 
     const options = [
         { value: 'ALL', label: 'Todos los estados', dotClass: 'all' },
-        { value: 'Aceptado', label: 'Aceptado', dotClass: 'aceptado' },
-        { value: 'En revision', label: 'En revisión', dotClass: 'en_revision' },
-        { value: 'Resuelto', label: 'Resuelto', dotClass: 'resuelto' }
+        { value: 'Recibido', label: 'Recibido', dotClass: 'recibido' },
+        { value: 'En Proceso', label: 'En Proceso', dotClass: 'en_proceso' },
+        { value: 'En Revision', label: 'En Revisión', dotClass: 'en_revision' },
+        { value: 'Aprobado', label: 'Aprobado', dotClass: 'aprobado' },
+        { value: 'Finalizado', label: 'Finalizado', dotClass: 'finalizado' },
+        { value: 'Rechazado', label: 'Rechazado', dotClass: 'rechazado' }
     ];
 
     useEffect(() => {

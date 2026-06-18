@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import CustomStatusDropdown from './CustomStatusDropdown';
+import { toast } from 'sonner';
 
 
 
@@ -81,9 +82,8 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
     const handleImageSelect = (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
         if (!file.type.startsWith('image/')) {
-            alert('Por favor selecciona un archivo de imagen válido.');
+            toast.error('Por favor selecciona un archivo de imagen válido.');
             return;
         }
 
@@ -154,9 +154,8 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
         const hasImage = compressedBlob !== null;
 
         if (!msgText && !hasImage) return;
-
         if (isChatBlocked) {
-            alert('No puedes enviar mensajes hasta que el administrador inicie la conversación.');
+            toast.warning('No puedes enviar mensajes hasta que el administrador inicie la conversación.');
             return;
         }
 
@@ -215,7 +214,7 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
 
         } catch (error) {
             console.error('Error al enviar mensaje:', error);
-            alert('No se pudo enviar el mensaje: ' + error.message);
+            toast.error('No se pudo enviar el mensaje: ' + error.message);
         } finally {
             setIsSending(false);
         }

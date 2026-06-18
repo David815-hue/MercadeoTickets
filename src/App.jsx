@@ -4,6 +4,7 @@ import SupabaseConfig from './components/SupabaseConfig';
 import Login from './components/Login';
 import PharmacyDashboard from './components/PharmacyDashboard';
 import AdminDashboard from './components/AdminDashboard';
+import { Toaster } from 'sonner';
 
 export default function App() {
     const [currentUser, setCurrentUser] = useState(null);
@@ -70,13 +71,23 @@ export default function App() {
 
     // Si no hay sesión iniciada, mostrar Login
     if (!currentUser) {
-        return <Login onLoginSuccess={handleLoginSuccess} currentTheme={theme} onToggleTheme={toggleTheme} />;
+        return (
+            <>
+                <Toaster position="top-right" richColors theme={theme} />
+                <Login onLoginSuccess={handleLoginSuccess} currentTheme={theme} onToggleTheme={toggleTheme} />
+            </>
+        );
     }
 
     // Router por Roles
-    if (currentUser.role === 'admin') {
-        return <AdminDashboard currentUser={currentUser} onLogout={handleLogout} currentTheme={theme} onToggleTheme={toggleTheme} />;
-    } else {
-        return <PharmacyDashboard currentUser={currentUser} onLogout={handleLogout} currentTheme={theme} onToggleTheme={toggleTheme} />;
-    }
+    return (
+        <>
+            <Toaster position="top-right" richColors theme={theme} />
+            {currentUser.role === 'admin' ? (
+                <AdminDashboard currentUser={currentUser} onLogout={handleLogout} currentTheme={theme} onToggleTheme={toggleTheme} />
+            ) : (
+                <PharmacyDashboard currentUser={currentUser} onLogout={handleLogout} currentTheme={theme} onToggleTheme={toggleTheme} />
+            )}
+        </>
+    );
 }

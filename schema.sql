@@ -24,7 +24,7 @@ CREATE TABLE public.tickets (
     user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
     pharmacy_name TEXT NOT NULL, -- Ej: PFH001
     description TEXT NOT NULL,
-    status TEXT DEFAULT 'Aceptado' CHECK (status IN ('Aceptado', 'En revision', 'Resuelto')) NOT NULL,
+    status TEXT DEFAULT 'Recibido' CHECK (status IN ('Recibido', 'En Proceso', 'En Revision', 'Aprobado', 'Finalizado', 'Rechazado')) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -362,3 +362,18 @@ BEGIN
     DELETE FROM auth.users WHERE id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 6. Agregar columnas estructuradas para el formulario dinámico
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS requester_role TEXT;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS priority TEXT;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS request_type TEXT;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS objective TEXT;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS additional_info TEXT;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS form_data JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]'::jsonb;
+
+-- 7. Modificar estados de tickets y agregar campo de rechazo
+ALTER TABLE public.tickets DROP CONSTRAINT IF EXISTS tickets_status_check;
+ALTER TABLE public.tickets ALTER COLUMN status SET DEFAULT 'Recibido';
+ALTER TABLE public.tickets ADD CONSTRAINT tickets_status_check CHECK (status IN ('Recibido', 'En Proceso', 'En Revision', 'Aprobado', 'Finalizado', 'Rechazado'));
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
