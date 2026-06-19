@@ -86,8 +86,8 @@ export default function Login({ onLoginSuccess, currentTheme, onToggleTheme }) {
                     <div className="logo-circle">
                         <i className="fa-solid fa-ticket logo-icon"></i>
                     </div>
-                    <h1>FarmaTickets</h1>
-                    <p>Sistema de Gestión de Soporte Técnico</p>
+                    <h1>Tickets Mercadeo</h1>
+                    <p>Sistema de Tickets de Mercadeo</p>
                 </div>
                 
                 <form id="login-form" onSubmit={handleLogin}>

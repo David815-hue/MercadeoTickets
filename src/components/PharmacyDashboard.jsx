@@ -2,6 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
 import { toast } from 'sonner';
+import FormSelect from './FormSelect';
+
+const CATEGORY_DURATIONS = {
+    'Artes Digital': '5 días',
+    'Rotulación Interna': '3 días (Cubrecajas 10 días)',
+    'Material para impresión': '10 días',
+    'Recetarios Médicos': '20 días',
+    'Insumos / utilería para activaciones o jornadas médicas': '3 días'
+};
 
 
 
@@ -154,8 +163,11 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         } else if (requestType === 'Material para impresión') {
             defaultData.tipoMaterialImpreso = 'Volante';
             defaultData.tamanoRequerido = '';
+            defaultData.orientacion = 'Vertical';
             defaultData.cantidadRequerida = '';
-            defaultData.indicacionesDiseno = '';
+            defaultData.ladosImpresion = 'Una cara';
+            defaultData.textoMaterial = '';
+            defaultData.aprobadorArte = '';
         } else if (requestType === 'Recetarios Médicos') {
             defaultData.tipoRecetario = 'Recetario Normal';
             defaultData.nombreMedico = '';
@@ -278,8 +290,11 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         } else if (requestType === 'Material para impresión') {
             if (!(stepSpecificData.tipoMaterialImpreso || '').trim()) errors.tipoMaterialImpreso = true;
             if (!(stepSpecificData.tamanoRequerido || '').trim()) errors.tamanoRequerido = true;
+            if (!(stepSpecificData.orientacion || '').trim()) errors.orientacion = true;
             if (!(stepSpecificData.cantidadRequerida || '').trim()) errors.cantidadRequerida = true;
-            if (!(stepSpecificData.indicacionesDiseno || '').trim()) errors.indicacionesDiseno = true;
+            if (!(stepSpecificData.ladosImpresion || '').trim()) errors.ladosImpresion = true;
+            if (!(stepSpecificData.textoMaterial || '').trim()) errors.textoMaterial = true;
+            if (!(stepSpecificData.aprobadorArte || '').trim()) errors.aprobadorArte = true;
         } else if (requestType === 'Recetarios Médicos') {
             if (!(stepSpecificData.tipoRecetario || '').trim()) errors.tipoRecetario = true;
             if (!(stepSpecificData.nombreMedico || '').trim()) errors.nombreMedico = true;
@@ -859,6 +874,13 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                             Tipo de Solicitud
                                             <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                         </label>
+
+                                            {requestType && CATEGORY_DURATIONS[requestType] && (
+                                                <div className="selected-duration-info-banner">
+                                                    <i className="fa-regular fa-clock"></i>
+                                                    <span>Esta solicitud se tardará aproximadamente: <strong>{CATEGORY_DURATIONS[requestType]}</strong></span>
+                                                </div>
+                                            )}
                                         <div className={`wizard-category-grid ${validationErrors.requestType ? 'input-invalid' : ''}`}>
                                             {[
                                                 { id: 'Artes Digital', label: 'Artes Digitales', icon: 'fa-solid fa-laptop-code' },
@@ -900,16 +922,14 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                     Tipo de material digital solicitado
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
-                                                <select 
+                                                <FormSelect 
                                                     id="tipo-material" 
                                                     className={validationErrors.tipoMaterial ? 'input-invalid' : ''}
                                                     value={stepSpecificData.tipoMaterial || ''} 
                                                     onChange={(e) => updateStepSpecificField('tipoMaterial', e.target.value)}
-                                                >
-                                                    {['Post para redes sociales', 'Historia para redes sociales', 'Reel / video corto', 'Banner web', 'HTML', 'Volante'].map(o => (
-                                                        <option key={o} value={o}>{o}</option>
-                                                    ))}
-                                                </select>
+                                                    options={['Post para redes sociales', 'Historia para redes sociales', 'Reel / video corto', 'Banner web', 'HTML', 'Volante']}
+                                                    placeholder="Seleccione tipo de material..."
+                                                />
                                             </div>
 
                                             <div className="input-group">
@@ -917,16 +937,14 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                     Medidas requeridas
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
-                                                <select 
+                                                <FormSelect 
                                                     id="medidas-artes" 
                                                     className={validationErrors.medidas ? 'input-invalid' : ''}
                                                     value={stepSpecificData.medidas || ''} 
                                                     onChange={(e) => updateStepSpecificField('medidas', e.target.value)}
-                                                >
-                                                    {['Estándar', 'Otras'].map(o => (
-                                                        <option key={o} value={o}>{o}</option>
-                                                    ))}
-                                                </select>
+                                                    options={['Estándar', 'Otras']}
+                                                    placeholder="Seleccione tipo de medida..."
+                                                />
                                             </div>
 
                                             {stepSpecificData.medidas === 'Otras' && (
@@ -981,32 +999,32 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                     Tipo de rotulación solicitada
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
-                                                <select 
+                                                <FormSelect 
                                                     id="tipo-rotulacion" 
                                                     className={validationErrors.tipoRotulacion ? 'input-invalid' : ''}
                                                     value={stepSpecificData.tipoRotulacion || ''} 
                                                     onChange={(e) => updateStepSpecificField('tipoRotulacion', e.target.value)}
-                                                >
-                                                    {['Rótulo Prefabricado', 'Cubre Caja', 'Puerta Mesón', 'Sticker', 'Otras'].map(o => (
-                                                        <option key={o} value={o}>{o}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            <div className="input-group">
-                                                <label htmlFor="medidas-rotulacion">
-                                                    Medidas requeridas (Ancho x Alto en cm)
-                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
-                                                </label>
-                                                <input 
-                                                    type="text" 
-                                                    id="medidas-rotulacion" 
-                                                    className={validationErrors.medidas ? 'input-invalid' : ''}
-                                                    placeholder="Ejemplo: 120 x 80 cm"
-                                                    value={stepSpecificData.medidas || ''} 
-                                                    onChange={(e) => updateStepSpecificField('medidas', e.target.value)}
+                                                    options={['Rótulo Prefabricado', 'Cubre Caja', 'Puerta Mesón', 'Sticker', 'Otras']}
+                                                    placeholder="Seleccione tipo de rotulación..."
                                                 />
                                             </div>
+
+                                            {['Cubre Caja', 'Puerta Mesón', 'Sticker'].includes(stepSpecificData.tipoRotulacion) && (
+                                                <div className="input-group">
+                                                    <label htmlFor="medidas-rotulacion">
+                                                        Medidas requeridas (Ancho x Alto en cm)
+                                                        <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                    </label>
+                                                    <input 
+                                                        type="text" 
+                                                        id="medidas-rotulacion" 
+                                                        className={validationErrors.medidas ? 'input-invalid' : ''}
+                                                        placeholder="Ejemplo: 120 x 80 cm"
+                                                        value={stepSpecificData.medidas || ''} 
+                                                        onChange={(e) => updateStepSpecificField('medidas', e.target.value)}
+                                                    />
+                                                </div>
+                                            )}
 
                                             <div className="input-group">
                                                 <label htmlFor="detalle-texto-rotulacion">
@@ -1032,16 +1050,14 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                     Tipo de material impreso solicitado
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
-                                                <select 
+                                                <FormSelect 
                                                     id="tipo-material-impreso" 
                                                     className={validationErrors.tipoMaterialImpreso ? 'input-invalid' : ''}
                                                     value={stepSpecificData.tipoMaterialImpreso || ''} 
                                                     onChange={(e) => updateStepSpecificField('tipoMaterialImpreso', e.target.value)}
-                                                >
-                                                    {['Volante', 'Afiche', 'Brochure', 'Trifolio', 'Tarjeta de Presentación', 'Invitación', 'Sticker', 'Otras'].map(o => (
-                                                        <option key={o} value={o}>{o}</option>
-                                                    ))}
-                                                </select>
+                                                    options={['Volante', 'Afiche', 'Brochure', 'Trifolio', 'Tarjeta de Presentación', 'Invitación', 'Sticker', 'Otras']}
+                                                    placeholder="Seleccione tipo de material..."
+                                                />
                                             </div>
 
                                             <div className="input-group">
@@ -1053,40 +1069,85 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                     type="text" 
                                                     id="tamano-impreso" 
                                                     className={validationErrors.tamanoRequerido ? 'input-invalid' : ''}
-                                                    placeholder="Ejemplo: Carta, Oficio, A4, o medidas específicas..."
+                                                    placeholder="Ejemplo: carta, media carta, A4, 30 x 40 cm, 60 x 90 cm."
                                                     value={stepSpecificData.tamanoRequerido || ''} 
                                                     onChange={(e) => updateStepSpecificField('tamanoRequerido', e.target.value)}
                                                 />
                                             </div>
 
                                             <div className="input-group">
+                                                <label htmlFor="orientacion-impreso">
+                                                    Orientación
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <FormSelect 
+                                                    id="orientacion-impreso" 
+                                                    className={validationErrors.orientacion ? 'input-invalid' : ''}
+                                                    value={stepSpecificData.orientacion || ''} 
+                                                    onChange={(e) => updateStepSpecificField('orientacion', e.target.value)}
+                                                    options={['Vertical', 'Horizontal', 'Cuadrado', 'No aplica']}
+                                                    placeholder="Seleccione orientación..."
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
                                                 <label htmlFor="cantidad-impreso">
-                                                    Cantidad requerida
+                                                    Cantidad a imprimir
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
                                                 <input 
                                                     type="text" 
                                                     id="cantidad-impreso" 
                                                     className={validationErrors.cantidadRequerida ? 'input-invalid' : ''}
-                                                    placeholder="Ejemplo: 100 unidades, 500 volantes..."
+                                                    placeholder="Escriba su respuesta"
                                                     value={stepSpecificData.cantidadRequerida || ''} 
                                                     onChange={(e) => updateStepSpecificField('cantidadRequerida', e.target.value)}
                                                 />
                                             </div>
 
                                             <div className="input-group">
-                                                <label htmlFor="indicaciones-impreso">
-                                                    Información e indicaciones de diseño
+                                                <label htmlFor="lados-impresion">
+                                                    ¿Será impresión a una cara o doble cara?
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <FormSelect 
+                                                    id="lados-impresion" 
+                                                    className={validationErrors.ladosImpresion ? 'input-invalid' : ''}
+                                                    value={stepSpecificData.ladosImpresion || ''} 
+                                                    onChange={(e) => updateStepSpecificField('ladosImpresion', e.target.value)}
+                                                    options={['Una cara', 'Doble cara', 'No estoy seguro']}
+                                                    placeholder="Seleccione lados..."
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="texto-material">
+                                                    Texto exacto que debe llevar el material
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
                                                 <textarea 
-                                                    id="indicaciones-impreso" 
-                                                    className={validationErrors.indicacionesDiseno ? 'input-invalid' : ''}
-                                                    placeholder="Escriba los textos, teléfonos o logos a incluir y el objetivo..."
-                                                    value={stepSpecificData.indicacionesDiseno || ''} 
-                                                    onChange={(e) => updateStepSpecificField('indicacionesDiseno', e.target.value)}
-                                                    rows="3"
+                                                    id="texto-material" 
+                                                    className={validationErrors.textoMaterial ? 'input-invalid' : ''}
+                                                    placeholder="Escriba su respuesta"
+                                                    value={stepSpecificData.textoMaterial || ''} 
+                                                    onChange={(e) => updateStepSpecificField('textoMaterial', e.target.value)}
+                                                    rows="4"
                                                 ></textarea>
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="aprobador-arte">
+                                                    ¿Quién debe aprobar el arte final antes de imprimir?
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="aprobador-arte" 
+                                                    className={validationErrors.aprobadorArte ? 'input-invalid' : ''}
+                                                    placeholder="Escriba su respuesta"
+                                                    value={stepSpecificData.aprobadorArte || ''} 
+                                                    onChange={(e) => updateStepSpecificField('aprobadorArte', e.target.value)}
+                                                />
                                             </div>
                                         </>
                                     )}
@@ -1098,16 +1159,14 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                     Tipo de Recetario solicitado
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
-                                                <select 
+                                                <FormSelect 
                                                     id="tipo-recetario" 
                                                     className={validationErrors.tipoRecetario ? 'input-invalid' : ''}
                                                     value={stepSpecificData.tipoRecetario || ''} 
                                                     onChange={(e) => updateStepSpecificField('tipoRecetario', e.target.value)}
-                                                >
-                                                    {['Recetario Normal', 'Recetario Controlado / Especial'].map(o => (
-                                                        <option key={o} value={o}>{o}</option>
-                                                    ))}
-                                                </select>
+                                                    options={['Recetario Normal', 'Recetario Controlado / Especial']}
+                                                    placeholder="Seleccione tipo de recetario..."
+                                                />
                                             </div>
 
                                             <div className="input-group">
@@ -1264,16 +1323,14 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                     Tipo de rotulación externa
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
-                                                <select 
+                                                <FormSelect 
                                                     id="tipo-rotulacion-externa" 
                                                     className={validationErrors.tipoRotulacionExterna ? 'input-invalid' : ''}
                                                     value={stepSpecificData.tipoRotulacionExterna || ''} 
                                                     onChange={(e) => updateStepSpecificField('tipoRotulacionExterna', e.target.value)}
-                                                >
-                                                    {['Fachada principal', 'Rótulo luminoso', 'Rótulo de bandera / doble cara', 'Pintura / Decoración exterior', 'Valla publicitaria', 'Otras'].map(o => (
-                                                        <option key={o} value={o}>{o}</option>
-                                                    ))}
-                                                </select>
+                                                    options={['Fachada principal', 'Rótulo luminoso', 'Rótulo de bandera / doble cara', 'Pintura / Decoración exterior', 'Valla publicitaria', 'Otras']}
+                                                    placeholder="Seleccione tipo de rotulación externa..."
+                                                />
                                             </div>
 
                                             <div className="input-group">
@@ -1550,8 +1607,12 @@ function renderStructuredDetails(ticket) {
             detalleTexto: 'Detalle / Texto',
             tipoMaterialImpreso: 'Tipo de Material Impreso',
             tamanoRequerido: 'Tamaño Requerido',
-            cantidadRequerida: 'Cantidad Requerida',
+            cantidadRequerida: 'Cantidad a imprimir',
             indicacionesDiseno: 'Indicaciones de Diseño',
+            orientacion: 'Orientación',
+            ladosImpresion: 'Lados de Impresión',
+            textoMaterial: 'Texto del Material',
+            aprobadorArte: 'Aprobador del Arte',
             tipoRecetario: 'Tipo de Recetario',
             nombreMedico: 'Nombre y Especialidad del Médico',
             codigoColegiado: 'Código de Colegiado / Registro',
@@ -1623,7 +1684,7 @@ function renderStructuredDetails(ticket) {
                         );
                     }
                     
-                    const isFullWidth = ['informacionMaterial', 'detalleTexto', 'indicacionesDiseno', 'informacionContacto', 'objetivoUso', 'estadoFachada'].includes(key);
+                    const isFullWidth = ['informacionMaterial', 'detalleTexto', 'indicacionesDiseno', 'informacionContacto', 'objetivoUso', 'estadoFachada', 'textoMaterial'].includes(key);
                     
                     return (
                         <div key={key} className={`structured-detail-item ${isFullWidth ? 'full-width' : ''}`}>

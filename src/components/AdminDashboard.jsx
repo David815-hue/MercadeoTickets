@@ -5,6 +5,7 @@ import KanbanBoard from './KanbanBoard';
 import CustomStatusDropdown from './CustomStatusDropdown';
 import CustomFilterDropdown from './CustomFilterDropdown';
 import { toast } from 'sonner';
+import FormSelect from './FormSelect';
 
 
 
@@ -864,15 +865,8 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                          </div>
                                                      </div>
                                                  )}
-                                                 {ticket.request_type ? (
-                                                     renderStructuredDetails(ticket)
-                                                 ) : (
-                                                     <div className="detail-description-box" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
-                                                         <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Descripción</h5>
-                                                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
-                                                     </div>
-                                                 )}
-                                                 <div className="accordion-body-row" style={{ padding: '16px 0 0 0', borderTop: '1px solid var(--border-color)', marginTop: '8px' }}>
+                                                 
+                                                 <div className="accordion-body-row" style={{ padding: '0 0 16px 0', borderBottom: '1px solid var(--border-color)', marginBottom: '16px' }}>
                                                      <span className="accordion-body-date">
                                                          <i className="fa-regular fa-clock"></i> {fecha}
                                                      </span>
@@ -892,6 +886,15 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                          {hasUnread && <span className="pulsing-alert-dot"></span>}
                                                      </button>
                                                  </div>
+
+                                                 {ticket.request_type ? (
+                                                     renderStructuredDetails(ticket)
+                                                 ) : (
+                                                     <div className="detail-description-box" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+                                                         <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Descripción</h5>
+                                                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
+                                                     </div>
+                                                 )}
                                              </div>
                                         )}
                                     </div>
@@ -1007,17 +1010,17 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                     </div>
                                                     <div className="input-group">
                                                         <label htmlFor="create-role">Rol</label>
-                                                        <select
+                                                        <FormSelect
                                                             id="create-role"
                                                             value={createRole}
                                                             onChange={(e) => setCreateRole(e.target.value)}
-                                                            required
+                                                            options={[
+                                                                { value: 'farmacia', label: 'Farmacia' },
+                                                                { value: 'admin', label: 'Administrador' }
+                                                            ]}
+                                                            placeholder="Seleccione un rol..."
                                                             disabled={isSavingNewUser}
-                                                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-input)', color: 'var(--text-primary)', padding: '8px 12px', borderRadius: '10px' }}
-                                                        >
-                                                            <option value="farmacia">Farmacia</option>
-                                                            <option value="admin">Administrador</option>
-                                                        </select>
+                                                        />
                                                     </div>
 
                                                     {createError && (
@@ -1406,8 +1409,12 @@ function renderStructuredDetails(ticket) {
             detalleTexto: 'Detalle / Texto',
             tipoMaterialImpreso: 'Tipo de Material Impreso',
             tamanoRequerido: 'Tamaño Requerido',
-            cantidadRequerida: 'Cantidad Requerida',
+            cantidadRequerida: 'Cantidad a imprimir',
             indicacionesDiseno: 'Indicaciones de Diseño',
+            orientacion: 'Orientación',
+            ladosImpresion: 'Lados de Impresión',
+            textoMaterial: 'Texto del Material',
+            aprobadorArte: 'Aprobador del Arte',
             tipoRecetario: 'Tipo de Recetario',
             nombreMedico: 'Nombre y Especialidad del Médico',
             codigoColegiado: 'Código de Colegiado / Registro',
@@ -1479,7 +1486,7 @@ function renderStructuredDetails(ticket) {
                         );
                     }
                     
-                    const isFullWidth = ['informacionMaterial', 'detalleTexto', 'indicacionesDiseno', 'informacionContacto', 'objetivoUso', 'estadoFachada'].includes(key);
+                    const isFullWidth = ['informacionMaterial', 'detalleTexto', 'indicacionesDiseno', 'informacionContacto', 'objetivoUso', 'estadoFachada', 'textoMaterial'].includes(key);
                     
                     return (
                         <div key={key} className={`structured-detail-item ${isFullWidth ? 'full-width' : ''}`}>
