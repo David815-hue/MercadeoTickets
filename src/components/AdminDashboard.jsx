@@ -19,7 +19,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [isLoading, setIsLoading] = useState(false);
     const [expandedTicketId, setExpandedTicketId] = useState(null);
     const [dbStatus, setDbStatus] = useState(null);
-    const [viewType, setViewType] = useState('list'); // 'list' o 'kanban'
+    const [viewType, setViewType] = useState('list'); // 'list', 'kanban', 'users' o 'workspace'
     const [selectedDetailTicket, setSelectedDetailTicket] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
@@ -117,8 +117,9 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                 
                 // Si el mensaje es enviado por una farmacia (no es admin ni del sistema)
                 if (newMsg.sender_name !== 'Administrador' && newMsg.sender_name !== 'Sistema') {
-                    // Si el chat del ticket no está abierto en este instante
-                    if (!isChatModalOpen || !activeTicket || activeTicket.id !== newMsg.ticket_id) {
+                    // Si el chat del ticket está abierto en el modal
+                    const isChatOpen = isChatModalOpen && activeTicket && activeTicket.id === newMsg.ticket_id;
+                    if (!isChatOpen) {
                         setUnreadTicketIds(prev => {
                             const updated = new Set(prev);
                             updated.add(newMsg.ticket_id);
@@ -175,21 +176,24 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
             return;
         }
 
+        const isFinal = ['Finalizado', 'Aprobado'].includes(newStatus);
+        const finalizedAtValue = isFinal ? new Date().toISOString() : null;
+
         try {
             const { error } = await supabase
                 .from('tickets')
-                .update({ status: newStatus, rejection_reason: null })
+                .update({ status: newStatus, rejection_reason: null, finalized_at: finalizedAtValue })
                 .eq('id', ticketId);
 
             if (error) throw error;
 
             // Actualizar en listas locales
-            setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus, rejection_reason: null } : t));
+            setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: newStatus, rejection_reason: null, finalized_at: finalizedAtValue } : t));
             if (activeTicket && activeTicket.id === ticketId) {
-                setActiveTicket(prev => ({ ...prev, status: newStatus, rejection_reason: null }));
+                setActiveTicket(prev => ({ ...prev, status: newStatus, rejection_reason: null, finalized_at: finalizedAtValue }));
             }
             if (selectedDetailTicket && selectedDetailTicket.id === ticketId) {
-                setSelectedDetailTicket(prev => ({ ...prev, status: newStatus, rejection_reason: null }));
+                setSelectedDetailTicket(prev => ({ ...prev, status: newStatus, rejection_reason: null, finalized_at: finalizedAtValue }));
             }
 
             toast.success(`Estado del ticket actualizado a "${newStatus}"`);
@@ -231,24 +235,26 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
             finalReason = rejectionCustomText.trim();
         }
 
+        const nowIso = new Date().toISOString();
         try {
             const { error } = await supabase
                 .from('tickets')
                 .update({ 
                     status: 'Rechazado',
-                    rejection_reason: finalReason
+                    rejection_reason: finalReason,
+                    finalized_at: nowIso
                 })
                 .eq('id', rejectionTicketId);
 
             if (error) throw error;
 
             // Actualizar en listas locales
-            setTickets(prev => prev.map(t => t.id === rejectionTicketId ? { ...t, status: 'Rechazado', rejection_reason: finalReason } : t));
+            setTickets(prev => prev.map(t => t.id === rejectionTicketId ? { ...t, status: 'Rechazado', rejection_reason: finalReason, finalized_at: nowIso } : t));
             if (activeTicket && activeTicket.id === rejectionTicketId) {
-                setActiveTicket(prev => ({ ...prev, status: 'Rechazado', rejection_reason: finalReason }));
+                setActiveTicket(prev => ({ ...prev, status: 'Rechazado', rejection_reason: finalReason, finalized_at: nowIso }));
             }
             if (selectedDetailTicket && selectedDetailTicket.id === rejectionTicketId) {
-                setSelectedDetailTicket(prev => ({ ...prev, status: 'Rechazado', rejection_reason: finalReason }));
+                setSelectedDetailTicket(prev => ({ ...prev, status: 'Rechazado', rejection_reason: finalReason, finalized_at: nowIso }));
             }
 
             toast.success('El ticket ha sido rechazado correctamente.');
@@ -497,13 +503,34 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
 
     // Filtrado local
     const filteredTickets = tickets.filter(ticket => {
-        const matchesSearch = ticket.pharmacy_name.toLowerCase().includes(search.toLowerCase().trim()) ||
-                              ticket.description.toLowerCase().includes(search.toLowerCase().trim()) ||
-                              ticket.id.toLowerCase().includes(search.toLowerCase().trim());
+        const query = search.toLowerCase().trim();
+        const matchesSearch = ticket.pharmacy_name.toLowerCase().includes(query) ||
+                              ticket.description.toLowerCase().includes(query) ||
+                              ticket.id.toLowerCase().includes(query) ||
+                              (ticket.ticket_number && ticket.ticket_number.toString().includes(query));
 
         const matchesStatus = filterStatus === 'ALL' || ticket.status === filterStatus;
 
         return matchesSearch && matchesStatus;
+    });
+
+    // Métricas KPI
+    const counts = {
+        recibido: 0,
+        enProceso: 0,
+        enRevision: 0,
+        aprobado: 0,
+        finalizado: 0,
+        rechazado: 0
+    };
+    tickets.forEach(t => {
+        const s = t.status.toLowerCase();
+        if (s === 'recibido') counts.recibido++;
+        else if (s === 'en proceso') counts.enProceso++;
+        else if (s === 'en revision' || s === 'en revisión') counts.enRevision++;
+        else if (s === 'aprobado') counts.aprobado++;
+        else if (s === 'finalizado') counts.finalizado++;
+        else if (s === 'rechazado') counts.rechazado++;
     });
 
     return (
@@ -533,19 +560,32 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                 <div className="header-controls-pill">
                     {/* Toggle de Vista: Lista / Kanban / Usuarios */}
                     {viewType !== 'users' ? (
-                        <button
-                            className="view-toggle-track"
-                            onClick={() => setViewType(prev => prev === 'list' ? 'kanban' : 'list')}
-                            title={viewType === 'list' ? 'Cambiar a vista Kanban' : 'Cambiar a vista Lista'}
-                            aria-label="Alternar vista"
-                        >
-                            <span className={`view-toggle-thumb ${viewType === 'kanban' ? 'active' : ''}`}>
-                                {viewType === 'list'
-                                    ? <i className="fa-solid fa-list"></i>
-                                    : <i className="fa-solid fa-table-columns"></i>
-                                }
-                            </span>
-                        </button>
+                        <div className="view-toggle-segmented">
+                            <button
+                                className={`view-toggle-btn ${viewType === 'list' ? 'active' : ''}`}
+                                onClick={() => setViewType('list')}
+                                title="Vista Lista"
+                                aria-label="Vista Lista"
+                            >
+                                <i className="fa-solid fa-list"></i>
+                            </button>
+                            <button
+                                className={`view-toggle-btn ${viewType === 'kanban' ? 'active' : ''}`}
+                                onClick={() => setViewType('kanban')}
+                                title="Vista Kanban"
+                                aria-label="Vista Kanban"
+                            >
+                                <i className="fa-solid fa-table-columns"></i>
+                            </button>
+                            <button
+                                className={`view-toggle-btn workspace-only-desktop ${viewType === 'workspace' ? 'active' : ''}`}
+                                onClick={() => setViewType('workspace')}
+                                title="Espacio de Trabajo"
+                                aria-label="Espacio de Trabajo"
+                            >
+                                <i className="fa-solid fa-window-restore"></i>
+                            </button>
+                        </div>
                     ) : (
                         <button
                             className="btn btn-secondary btn-xs"
@@ -710,8 +750,295 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
             </header>
 
             {/* Dashboard Container */}
-            <div className={`dashboard-container ${viewType === 'kanban' ? 'kanban-mode' : ''}`}>
-                <div className={`modern-layout ${viewType === 'kanban' ? 'kanban-layout' : ''}`}>
+            <div className={`dashboard-container ${viewType === 'kanban' ? 'kanban-mode' : ''} ${viewType === 'workspace' ? 'workspace-mode' : ''}`}>
+                
+                {/* 1. ESPACIO DE TRABAJO (WORKSPACE) */}
+                {viewType === 'workspace' && (
+                    <>
+                        {/* Tarjetas de Métricas KPI */}
+                        <div className="workspace-metrics-row">
+                            <div className="workspace-metric-card">
+                                <div className="workspace-metric-icon recibido">
+                                    <i className="fa-solid fa-inbox"></i>
+                                </div>
+                                <div className="workspace-metric-info">
+                                    <span className="workspace-metric-value">{counts.recibido}</span>
+                                    <span className="workspace-metric-label">Recibidos</span>
+                                </div>
+                            </div>
+
+                            <div className="workspace-metric-card">
+                                <div className="workspace-metric-icon en-proceso">
+                                    <i className="fa-solid fa-gears"></i>
+                                </div>
+                                <div className="workspace-metric-info">
+                                    <span className="workspace-metric-value">{counts.enProceso}</span>
+                                    <span className="workspace-metric-label">En Proceso</span>
+                                </div>
+                            </div>
+
+                            <div className="workspace-metric-card">
+                                <div className="workspace-metric-icon en-revision">
+                                    <i className="fa-solid fa-magnifying-glass"></i>
+                                </div>
+                                <div className="workspace-metric-info">
+                                    <span className="workspace-metric-value">{counts.enRevision}</span>
+                                    <span className="workspace-metric-label">En Revisión</span>
+                                </div>
+                            </div>
+
+                            <div className="workspace-metric-card">
+                                <div className="workspace-metric-icon aprobado">
+                                    <i className="fa-solid fa-circle-check"></i>
+                                </div>
+                                <div className="workspace-metric-info">
+                                    <span className="workspace-metric-value">{counts.aprobado}</span>
+                                    <span className="workspace-metric-label">Aprobados</span>
+                                </div>
+                            </div>
+
+                            <div className="workspace-metric-card">
+                                <div className="workspace-metric-icon finalizado">
+                                    <i className="fa-solid fa-flag-checkered"></i>
+                                </div>
+                                <div className="workspace-metric-info">
+                                    <span className="workspace-metric-value">{counts.finalizado}</span>
+                                    <span className="workspace-metric-label">Finalizados</span>
+                                </div>
+                            </div>
+
+                            <div className="workspace-metric-card">
+                                <div className="workspace-metric-icon rechazado">
+                                    <i className="fa-solid fa-circle-xmark"></i>
+                                </div>
+                                <div className="workspace-metric-info">
+                                    <span className="workspace-metric-value">{counts.rechazado}</span>
+                                    <span className="workspace-metric-label">Rechazados</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Contenedor 3 Columnas Desktop */}
+                        <div className="desktop-workspace-container">
+                            {/* Columna 1: Sidebar con lista de tickets */}
+                            <div className="workspace-sidebar">
+                                <div className="sidebar-header-box">
+                                    <div className="sidebar-title-row">
+                                        <h3>Solicitudes</h3>
+                                        <button className="btn btn-secondary btn-icon-only" style={{ padding: '6px 10px', fontSize: '0.8rem' }} onClick={loadTickets} title="Actualizar lista">
+                                            <i className="fa-solid fa-rotate"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="sidebar-search-wrapper">
+                                        <i className="fa-solid fa-magnifying-glass"></i>
+                                        <input 
+                                            type="text" 
+                                            className="sidebar-search-input" 
+                                            placeholder="Buscar ticket o farmacia..." 
+                                            value={search}
+                                            onChange={(e) => setSearch(e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="sidebar-filter-pills">
+                                        {['ALL', 'Recibido', 'En Proceso', 'En Revision', 'Aprobado', 'Finalizado', 'Rechazado'].map(f => {
+                                            const count = f === 'ALL' ? tickets.length : tickets.filter(t => t.status === f).length;
+                                            let label = f;
+                                            if (f === 'ALL') label = 'Todos';
+                                            else if (f === 'En Revision') label = 'En Revisión';
+                                            
+                                            return (
+                                                <button 
+                                                    key={f}
+                                                    className={`filter-pill ${filterStatus === f ? 'active' : ''}`}
+                                                    onClick={() => setFilterStatus(f)}
+                                                >
+                                                    {label} ({count})
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="sidebar-tickets-list">
+                                    {filteredTickets.length === 0 ? (
+                                        <div className="empty-state" style={{ height: 'auto', padding: '30px 10px', textAlign: 'center' }}>
+                                            <i className="fa-solid fa-inbox" style={{ fontSize: '1.8rem', opacity: 0.5 }}></i>
+                                            <p style={{ fontSize: '0.85rem', marginTop: '10px' }}>No hay solicitudes</p>
+                                        </div>
+                                    ) : (
+                                        filteredTickets.map(ticket => {
+                                            const isActive = activeTicket && activeTicket.id === ticket.id;
+                                            const hasUnread = unreadTicketIds.has(ticket.id);
+                                            const fechaCompact = new Date(ticket.created_at).toLocaleDateString('es-ES', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                year: 'numeric'
+                                            });
+
+                                            return (
+                                                <div 
+                                                    key={ticket.id}
+                                                    className={`sidebar-ticket-card ${isActive ? 'active' : ''}`}
+                                                    onClick={() => {
+                                                        setActiveTicket(ticket);
+                                                        // Quitar de alertas no leídas
+                                                        setUnreadTicketIds(prev => {
+                                                            const updated = new Set(prev);
+                                                            updated.delete(ticket.id);
+                                                            return updated;
+                                                        });
+                                                    }}
+                                                >
+                                                    <div className="sidebar-ticket-card-header">
+                                                        <span className={`card-ticket-id ${hasUnread ? 'unread' : ''}`}>
+                                                            {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 6)}`}
+                                                        </span>
+                                                        <span className={`badge status-pill status-pill-${ticket.status.toLowerCase().replace(' ', '_')}`} style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                                                            {ticket.status}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <i className="fa-solid fa-hospital" style={{ fontSize: '0.72rem', color: 'var(--color-primary)' }}></i>
+                                                        {ticket.pharmacy_name}
+                                                    </div>
+
+                                                    <span className="card-ticket-desc-snippet">
+                                                        {ticket.description}
+                                                    </span>
+
+                                                    <div className="sidebar-ticket-card-badges">
+                                                        {ticket.priority && (
+                                                            <span className={`card-badge-priority ${ticket.priority.toLowerCase()}`}>
+                                                                <i className="fa-solid fa-circle-exclamation"></i>
+                                                                {ticket.priority}
+                                                            </span>
+                                                        )}
+                                                        {ticket.request_type && (
+                                                            <span className="card-badge-type">
+                                                                <i className={getRequestTypeIcon(ticket.request_type)}></i>
+                                                                {ticket.request_type.replace(' o jornadas médicas', '').substring(0, 18)}...
+                                                            </span>
+                                                        )}
+                                                        {(() => {
+                                                            const daysInfo = getElapsedDays(ticket);
+                                                            
+                                                            return (
+                                                                <span className={`days-elapsed-badge ${!daysInfo.hasStarted ? 'pending' : ''}`} style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: '4px' }}>
+                                                                    <i className={daysInfo.hasStarted ? "fa-solid fa-calendar-check" : "fa-regular fa-clock"} style={{ fontSize: '0.68rem' }}></i>
+                                                                    {daysInfo.hasStarted ? (
+                                                                        `${daysInfo.days} ${daysInfo.days === 1 ? 'día' : 'días'}`
+                                                                    ) : (
+                                                                        `Inicia el ${daysInfo.startDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}`
+                                                                    )}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </div>
+
+                                                    <div className="card-ticket-footer">
+                                                        <span>Creado: {fechaCompact}</span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Columna 2: Detalles del ticket activo */}
+                            <div className="workspace-main-pane">
+                                {!activeTicket ? (
+                                    <div className="workspace-empty-state">
+                                        <i className="fa-solid fa-folder-open"></i>
+                                        <p>Selecciona una solicitud de la lista para ver su detalle</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Detalles del ticket */}
+                                        <div className="workspace-details-column">
+                                            <div className="workspace-details-header">
+                                                <div className="workspace-details-header-title">
+                                                    <h3>{activeTicket.ticket_number ? `Ticket TK-${activeTicket.ticket_number}` : `Ticket #${activeTicket.id}`}</h3>
+                                                    <div className="workspace-details-header-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                                        <span><i className="fa-regular fa-clock"></i> {new Date(activeTicket.created_at).toLocaleString('es-ES')}</span>
+                                                        <span style={{ fontWeight: '600' }}><i className="fa-solid fa-hospital" style={{ color: 'var(--color-primary)' }}></i> {activeTicket.pharmacy_name}</span>
+                                                        {(() => {
+                                                            const daysInfo = getElapsedDays(activeTicket);
+                                                            
+                                                            return (
+                                                                <span className={`days-elapsed-badge ${!daysInfo.hasStarted ? 'pending' : ''}`} style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
+                                                                    <i className={daysInfo.hasStarted ? "fa-solid fa-calendar-check" : "fa-regular fa-clock"}></i>
+                                                                    {daysInfo.hasStarted ? (
+                                                                        `Días transcurridos: ${daysInfo.days}`
+                                                                    ) : (
+                                                                        `Conteo inicia el ${daysInfo.startDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}`
+                                                                    )}
+                                                                </span>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </div>
+                                                <div className="flex-row gap-12 align-center" style={{ flexShrink: 0 }}>
+                                                    <button 
+                                                        className={`btn workspace-chat-btn ${unreadTicketIds.has(activeTicket.id) ? 'pulse-alert' : ''}`}
+                                                        onClick={() => handleOpenChat(activeTicket)}
+                                                        title="Abrir chat de soporte"
+                                                    >
+                                                        <i className="fa-regular fa-comments"></i>
+                                                        <span>Chat</span>
+                                                        {unreadTicketIds.has(activeTicket.id) && (
+                                                            <span className="btn-unread-badge"></span>
+                                                        )}
+                                                    </button>
+                                                    <CustomStatusDropdown 
+                                                        value={activeTicket.status}
+                                                        onChange={(val) => handleStatusChange(activeTicket.id, val)}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {activeTicket.status === 'Rechazado' && activeTicket.rejection_reason && (
+                                                <div className="rejection-reason-banner" style={{ marginBottom: '20px' }}>
+                                                    <i className="fa-solid fa-circle-xmark"></i>
+                                                    <div>
+                                                        <strong>Motivo de rechazo:</strong> {activeTicket.rejection_reason}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {activeTicket.request_type ? (
+                                                renderStructuredDetails(activeTicket)
+                                            ) : (
+                                                <div className="detail-description-box" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+                                                    <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Descripción</h5>
+                                                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{activeTicket.description}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Fallback Responsivo para Móviles */}
+                        <div className="admin-workspace-mobile-fallback">
+                            <i className="fa-solid fa-desktop"></i>
+                            <h3>Vista Optimizada para Escritorio</h3>
+                            <p>El Espacio de Trabajo requiere una pantalla más grande. Por favor, use la vista de Lista o Kanban en su dispositivo móvil.</p>
+                            <div className="flex-row gap-12 justify-center" style={{ marginTop: '16px' }}>
+                                <button className="btn btn-primary btn-sm" onClick={() => setViewType('list')}>Ver Lista</button>
+                                <button className="btn btn-secondary btn-sm" onClick={() => setViewType('kanban')}>Ver Kanban</button>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {/* 2. VISTAS ESTÁNDAR (LISTA / KANBAN / USUARIOS) */}
+                {viewType !== 'workspace' && (
+                    <div className={`modern-layout ${viewType === 'kanban' ? 'kanban-layout' : ''}`}>
                     {/* Barra de Acciones y Filtros */}
                     {viewType === 'list' && (
                         <div className="dashboard-actions-bar" style={{ gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -1099,7 +1426,8 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                             </div>
                         </div>
                     )}
-                </div>
+                    </div>
+                )}
             </div>
 
             {/* MODAL: Chat de Administración */}
@@ -1538,3 +1866,42 @@ function renderStructuredDetails(ticket) {
         </div>
     );
 }
+
+function getStartCountingDate(createdAtString) {
+    if (!createdAtString) return new Date();
+    const createdDate = new Date(createdAtString);
+    createdDate.setHours(0, 0, 0, 0);
+    const dayOfWeek = createdDate.getDay();
+    const daysToAdd = (4 - dayOfWeek + 7) % 7;
+    const startDate = new Date(createdDate);
+    startDate.setDate(createdDate.getDate() + daysToAdd);
+    startDate.setHours(0, 0, 0, 0);
+    return startDate;
+}
+
+function getElapsedDays(ticket) {
+    if (!ticket || !ticket.created_at) return { days: 0, hasStarted: false, startDate: new Date() };
+    const startDate = getStartCountingDate(ticket.created_at);
+    
+    // Usar finalized_at si el ticket está finalizado, de lo contrario hoy
+    const endDate = ticket.finalized_at ? new Date(ticket.finalized_at) : new Date();
+    endDate.setHours(0, 0, 0, 0);
+    
+    if (endDate < startDate) {
+        return {
+            days: 0,
+            hasStarted: false,
+            startDate: startDate
+        };
+    }
+    
+    const diffTime = Math.abs(endDate - startDate);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return {
+        days: diffDays,
+        hasStarted: true,
+        startDate: startDate
+    };
+}
+
+

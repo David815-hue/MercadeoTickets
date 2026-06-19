@@ -377,3 +377,5 @@ ALTER TABLE public.tickets DROP CONSTRAINT IF EXISTS tickets_status_check;
 ALTER TABLE public.tickets ALTER COLUMN status SET DEFAULT 'Recibido';
 ALTER TABLE public.tickets ADD CONSTRAINT tickets_status_check CHECK (status IN ('Recibido', 'En Proceso', 'En Revision', 'Aprobado', 'Finalizado', 'Rechazado'));
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS finalized_at TIMESTAMP WITH TIME ZONE;
+

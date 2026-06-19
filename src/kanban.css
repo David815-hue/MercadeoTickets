@@ -1920,8 +1920,8 @@
 
 .structured-details-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px 24px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px 24px;
 }
 
 @media (max-width: 600px) {

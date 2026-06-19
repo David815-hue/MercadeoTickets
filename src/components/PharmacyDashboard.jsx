@@ -20,6 +20,45 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
     const [expandedTicketId, setExpandedTicketId] = useState(null);
     const [unreadTicketIds, setUnreadTicketIds] = useState(new Set());
     
+    const getStartCountingDate = (createdAtString) => {
+        if (!createdAtString) return new Date();
+        const createdDate = new Date(createdAtString);
+        createdDate.setHours(0, 0, 0, 0);
+        const dayOfWeek = createdDate.getDay();
+        const daysToAdd = (4 - dayOfWeek + 7) % 7;
+        const startDate = new Date(createdDate);
+        startDate.setDate(createdDate.getDate() + daysToAdd);
+        startDate.setHours(0, 0, 0, 0);
+        return startDate;
+    };
+
+    const getDaysElapsedInfo = (ticket) => {
+        if (!ticket || !ticket.created_at) return { days: 0, hasStarted: false, startDate: new Date() };
+        
+        const startDate = getStartCountingDate(ticket.created_at);
+        
+        // Usar finalized_at si el ticket está finalizado, de lo contrario hoy
+        const endDate = ticket.finalized_at ? new Date(ticket.finalized_at) : new Date();
+        endDate.setHours(0, 0, 0, 0);
+        
+        if (endDate < startDate) {
+            return {
+                days: 0,
+                hasStarted: false,
+                startDate: startDate
+            };
+        }
+        
+        const diffTime = Math.abs(endDate - startDate);
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return {
+            days: diffDays,
+            hasStarted: true,
+            startDate: startDate
+        };
+    };
+
+
     // Estados del Wizard de Creación
     const [wizardStep, setWizardStep] = useState(1);
     const [requesterRole, setRequesterRole] = useState('Jefe de Tienda');
@@ -514,6 +553,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         loadTickets(); // Recargar para ver si cambió el estado mientras chateaba
     };
 
+
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
         setProfileError('');
@@ -556,6 +596,8 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         }
     };
 
+
+
     return (
         <div id="pharmacy-screen">
             {/* Header Flotante Premium */}
@@ -572,6 +614,11 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                             Farmacia
                         </span>
                     </div>
+                </div>
+
+                {/* Título Central */}
+                <div className="header-title-pill">
+                    <h1>Mis Solicitudes</h1>
                 </div>
 
                 {/* Pill Derecho: Toggle Tema + Logout */}
@@ -625,16 +672,20 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                 </div>
             </header>
 
-            {/* Dashboard Container (Modernized) */}
+            {/* Dashboard Container */}
             <div className="dashboard-container">
                 <div className="modern-layout">
                     {/* Barra de Acciones Superior */}
-                    <div className="dashboard-actions-bar">
-                        <div className="dashboard-title-area">
-                            <h2>Mis Solicitudes</h2>
-                            <p>Consulta el estado de tus reportes y comunícate con soporte técnico.</p>
+                    <div className="dashboard-actions-bar" style={{ gap: '20px', flexWrap: 'wrap' }}>
+                        {/* Mensaje de Información Compacto */}
+                        <div className="pharmacy-info-compact">
+                            <i className="fa-solid fa-circle-info"></i>
+                            <span>
+                                El conteo de días transcurridos inicia los <strong>jueves</strong> (tickets creados otros días inician el siguiente jueves).
+                            </span>
                         </div>
-                        <div className="flex-row gap-8 align-center">
+                        
+                        <div className="flex-row gap-8 align-center" style={{ marginLeft: 'auto' }}>
                             <button className="btn btn-secondary btn-icon-only" onClick={loadTickets} title="Actualizar lista">
                                 <i className="fa-solid fa-rotate"></i>
                             </button>
@@ -740,18 +791,33 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
                                                     </div>
                                                 )}
-                                                <div className="accordion-body-row" style={{ padding: '16px 0 0 0', borderTop: '1px solid var(--border-color)', marginTop: '8px' }}>
-                                                    <span className="accordion-body-date">
-                                                        <i className="fa-regular fa-clock"></i> {fecha}
-                                                    </span>
-                                                    <button 
-                                                        className={`btn ${hasUnread ? 'btn-danger' : 'btn-secondary'} btn-sm unread-badge-container`}
-                                                        onClick={() => handleOpenChat(ticket)}
-                                                    >
-                                                        <i className="fa-regular fa-comments"></i>
-                                                        <span>Chat de Soporte</span>
-                                                        {hasUnread && <span className="pulsing-alert-dot"></span>}
-                                                    </button>
+                                                <div className="accordion-body-row" style={{ padding: '16px 0 0 0', borderTop: '1px solid var(--border-color)', marginTop: '8px', flexWrap: 'wrap', gap: '12px' }}>
+                                                     <div className="flex-row gap-12 align-center">
+                                                         <span className="accordion-body-date">
+                                                             <i className="fa-regular fa-clock"></i> {fecha}
+                                                         </span>
+                                                         {(() => {
+                                                             const daysInfo = getDaysElapsedInfo(ticket);
+                                                             return (
+                                                                 <span className={`days-elapsed-badge ${!daysInfo.hasStarted ? 'pending' : ''}`}>
+                                                                     <i className={daysInfo.hasStarted ? "fa-solid fa-calendar-check" : "fa-regular fa-clock"}></i>
+                                                                     {daysInfo.hasStarted ? (
+                                                                         `Días transcurridos: ${daysInfo.days}`
+                                                                     ) : (
+                                                                         `Conteo inicia el ${daysInfo.startDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}`
+                                                                     )}
+                                                                 </span>
+                                                             );
+                                                         })()}
+                                                     </div>
+                                                     <button 
+                                                         className={`btn ${hasUnread ? 'btn-danger' : 'btn-secondary'} btn-sm unread-badge-container`}
+                                                         onClick={() => handleOpenChat(ticket)}
+                                                     >
+                                                         <i className="fa-regular fa-comments"></i>
+                                                         <span>Chat de Soporte</span>
+                                                         {hasUnread && <span className="pulsing-alert-dot"></span>}
+                                                     </button>
                                                 </div>
                                             </div>
                                         )}
@@ -1631,6 +1697,25 @@ function renderStructuredDetails(ticket) {
 
     const formDataEntries = Object.entries(formData).filter(([key]) => key !== '_type');
 
+    // Identificar si una entrada debe mostrarse a ancho completo
+    const isFullWidthKey = (key, val) => {
+        if (Array.isArray(val)) return true;
+        return ['informacionMaterial', 'detalleTexto', 'indicacionesDiseno', 'informacionContacto', 'objetivoUso', 'estadoFachada', 'textoMaterial'].includes(key);
+    };
+
+    // Separar en entradas de ancho medio y ancho completo
+    const halfWidthEntries = [];
+    const fullWidthEntries = [];
+
+    formDataEntries.forEach(([key, val]) => {
+        if (val === undefined || val === null || val === '') return;
+        if (isFullWidthKey(key, val)) {
+            fullWidthEntries.push([key, val]);
+        } else {
+            halfWidthEntries.push([key, val]);
+        }
+    });
+
     return (
         <div className="structured-details-section">
             <div className="structured-details-title">
@@ -1639,6 +1724,7 @@ function renderStructuredDetails(ticket) {
             </div>
             
             <div className="structured-details-grid">
+                {/* 1. Datos cortos (Ancho Medio) agrupados para optimizar espacio */}
                 <div className="structured-detail-item">
                     <span className="structured-detail-label">Rol del Solicitante</span>
                     <span className="structured-detail-value">{ticket.requester_role || 'No especificado'}</span>
@@ -1650,7 +1736,18 @@ function renderStructuredDetails(ticket) {
                         {ticket.priority || 'Normal'}
                     </span>
                 </div>
+
+                {halfWidthEntries.map(([key, val]) => {
+                    const label = getReadableLabel(key);
+                    return (
+                        <div key={key} className="structured-detail-item">
+                            <span className="structured-detail-label">{label}</span>
+                            <span className="structured-detail-value" style={{ whiteSpace: 'pre-wrap' }}>{val}</span>
+                        </div>
+                    );
+                })}
                 
+                {/* 2. Datos largos y descripciones (Ancho Completo) al final */}
                 <div className="structured-detail-item full-width">
                     <span className="structured-detail-label">Objetivo</span>
                     <span className="structured-detail-value">{ticket.objective || ticket.description}</span>
@@ -1663,9 +1760,7 @@ function renderStructuredDetails(ticket) {
                     </div>
                 )}
                 
-                {formDataEntries.map(([key, val]) => {
-                    if (val === undefined || val === null || val === '') return null;
-                    
+                {fullWidthEntries.map(([key, val]) => {
                     const label = getReadableLabel(key);
                     
                     if (Array.isArray(val)) {
@@ -1684,10 +1779,8 @@ function renderStructuredDetails(ticket) {
                         );
                     }
                     
-                    const isFullWidth = ['informacionMaterial', 'detalleTexto', 'indicacionesDiseno', 'informacionContacto', 'objetivoUso', 'estadoFachada', 'textoMaterial'].includes(key);
-                    
                     return (
-                        <div key={key} className={`structured-detail-item ${isFullWidth ? 'full-width' : ''}`}>
+                        <div key={key} className="structured-detail-item full-width">
                             <span className="structured-detail-label">{label}</span>
                             <span className="structured-detail-value" style={{ whiteSpace: 'pre-wrap' }}>{val}</span>
                         </div>
