@@ -83,8 +83,8 @@ export default function Login({ onLoginSuccess, currentTheme, onToggleTheme }) {
 
             <div className="glass-card login-card">
                 <div className="logo-area">
-                    <div className="logo-circle">
-                        <i className="fa-solid fa-ticket logo-icon"></i>
+                    <div className="logo-circle" style={{ overflow: 'hidden', padding: 0, background: 'none', borderRadius: '18px', boxShadow: '0 10px 20px -5px rgba(220, 38, 38, 0.4)' }}>
+                        <img src="/PF.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                     <h1>Tickets Mercadeo</h1>
                     <p>Sistema de Tickets de Mercadeo</p>

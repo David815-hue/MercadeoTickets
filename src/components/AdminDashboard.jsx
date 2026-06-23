@@ -6,6 +6,8 @@ import CustomStatusDropdown from './CustomStatusDropdown';
 import CustomFilterDropdown from './CustomFilterDropdown';
 import { toast } from 'sonner';
 import FormSelect from './FormSelect';
+import SlaProgressBar from './SlaProgressBar';
+import AuditLogModal from './AuditLogModal';
 
 
 
@@ -22,6 +24,8 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [viewType, setViewType] = useState('list'); // 'list', 'kanban', 'users' o 'workspace'
     const [selectedDetailTicket, setSelectedDetailTicket] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+    const [auditLogTicket, setAuditLogTicket] = useState(null);
 
     // Estados de rechazo de tickets
     const [rejectionTicketId, setRejectionTicketId] = useState(null);
@@ -965,23 +969,20 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                     <div className="workspace-details-header-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                                                         <span><i className="fa-regular fa-clock"></i> {new Date(activeTicket.created_at).toLocaleString('es-ES')}</span>
                                                         <span style={{ fontWeight: '600' }}><i className="fa-solid fa-hospital" style={{ color: 'var(--color-primary)' }}></i> {activeTicket.pharmacy_name}</span>
-                                                        {(() => {
-                                                            const daysInfo = getElapsedDays(activeTicket);
-                                                            
-                                                            return (
-                                                                <span className={`days-elapsed-badge ${!daysInfo.hasStarted ? 'pending' : ''}`} style={{ fontSize: '0.68rem', padding: '2px 6px' }}>
-                                                                    <i className={daysInfo.hasStarted ? "fa-solid fa-calendar-check" : "fa-regular fa-clock"}></i>
-                                                                    {daysInfo.hasStarted ? (
-                                                                        `Días transcurridos: ${daysInfo.days}`
-                                                                    ) : (
-                                                                        `Conteo inicia el ${daysInfo.startDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}`
-                                                                    )}
-                                                                </span>
-                                                            );
-                                                        })()}
                                                     </div>
                                                 </div>
                                                 <div className="flex-row gap-12 align-center" style={{ flexShrink: 0 }}>
+                                                    <button 
+                                                        className="btn-history-pill"
+                                                        onClick={() => {
+                                                            setAuditLogTicket(activeTicket);
+                                                            setIsAuditModalOpen(true);
+                                                        }}
+                                                        title="Ver historial de auditoría"
+                                                    >
+                                                        <i className="fa-solid fa-clock-rotate-left"></i>
+                                                        <span>Historial</span>
+                                                    </button>
                                                     <button 
                                                         className={`btn workspace-chat-btn ${unreadTicketIds.has(activeTicket.id) ? 'pulse-alert' : ''}`}
                                                         onClick={() => handleOpenChat(activeTicket)}
@@ -998,6 +999,10 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                         onChange={(val) => handleStatusChange(activeTicket.id, val)}
                                                     />
                                                 </div>
+                                            </div>
+
+                                            <div style={{ marginBottom: '20px' }}>
+                                                <SlaProgressBar ticket={activeTicket} showDetails={true} />
                                             </div>
 
                                             {activeTicket.status === 'Rechazado' && activeTicket.rejection_reason && (
@@ -1041,40 +1046,33 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                     <div className={`modern-layout ${viewType === 'kanban' ? 'kanban-layout' : ''}`}>
                     {/* Barra de Acciones y Filtros */}
                     {viewType === 'list' && (
-                        <div className="dashboard-actions-bar" style={{ gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                            <div className="flex-row gap-12 align-center flex-wrap">
-                                <div className="search-input-wrapper">
-                                    <i className="fa-solid fa-magnifying-glass search-icon"></i>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Buscar farmacia o ticket..." 
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                    />
-                                    {search && (
-                                        <button 
-                                            className="clear-search-btn" 
-                                            onClick={() => setSearch('')} 
-                                            title="Limpiar búsqueda"
-                                        >
-                                            <i className="fa-solid fa-xmark"></i>
-                                        </button>
-                                    )}
-                                </div>
-
-                                <CustomFilterDropdown 
-                                    value={filterStatus}
-                                    onChange={setFilterStatus}
+                        <div className="search-filter-capsule">
+                            <div className="search-input-wrapper">
+                                <i className="fa-solid fa-magnifying-glass search-icon"></i>
+                                <input 
+                                    type="text" 
+                                    placeholder="Buscar farmacia o ticket..." 
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
                                 />
-
-                                <button 
-                                    className="btn btn-secondary btn-refresh-premium" 
-                                    onClick={loadTickets} 
-                                    title="Actualizar lista"
-                                >
-                                    <i className="fa-solid fa-rotate"></i>
-                                </button>
+                                {search && (
+                                    <button 
+                                        className="clear-search-btn" 
+                                        style={{ right: '8px' }}
+                                        onClick={() => setSearch('')} 
+                                        title="Limpiar búsqueda"
+                                    >
+                                        <i className="fa-solid fa-xmark"></i>
+                                    </button>
+                                )}
                             </div>
+
+                            <div className="capsule-divider"></div>
+
+                            <CustomFilterDropdown 
+                                value={filterStatus}
+                                onChange={setFilterStatus}
+                            />
                         </div>
                     )}
 
@@ -1125,9 +1123,8 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                             zIndex: isExpanded ? 50 : 1
                                         }}
                                     >
-                                        {/* Cabecera del acordeón */}
-                                        <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>
-                                             <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                                               <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>
+                                             <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '8px' }}>
                                                  <span className="accordion-ticket-id">
                                                      {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}
                                                  </span>
@@ -1156,29 +1153,35 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                          {ticket.request_type}
                                                      </span>
                                                  )}
-                                                 <span 
-                                                     className="accordion-ticket-desc" 
-                                                     style={{ 
-                                                         color: 'var(--text-secondary)', 
-                                                         fontSize: '0.9rem', 
-                                                         fontWeight: '500'
-                                                     }}
-                                                 >
-                                                     — {ticket.description}
-                                                 </span>
-                                             </div>
-                                             <div className="accordion-header-right">
-                                                 {hasUnread && (
-                                                     <span 
-                                                         className="pulsing-alert-dot" 
-                                                         style={{ position: 'relative', top: 'auto', right: 'auto', marginRight: '8px' }}
-                                                     ></span>
-                                                 )}
-                                                 <span className={`badge status-pill status-pill-${ticket.status.toLowerCase().replace(' ', '_')}`}>
-                                                     {ticket.status}
-                                                 </span>
-                                                 <i className="fa-solid fa-chevron-down accordion-chevron"></i>
-                                             </div>
+                                                  <span 
+                                                      className="accordion-ticket-desc" 
+                                                      style={{ 
+                                                          color: 'var(--text-secondary)', 
+                                                          fontSize: '0.9rem', 
+                                                          fontWeight: '500',
+                                                          overflow: 'hidden',
+                                                          textOverflow: 'ellipsis',
+                                                          whiteSpace: 'nowrap',
+                                                          flex: '1 1 auto',
+                                                          minWidth: '0'
+                                                      }}
+                                                      title={ticket.description}
+                                                  >
+                                                      — {ticket.description}
+                                                  </span>
+                                              </div>
+                                              <div className="accordion-header-right">
+                                                  {hasUnread && (
+                                                      <span 
+                                                          className="pulsing-alert-dot" 
+                                                          style={{ position: 'relative', top: 'auto', right: 'auto', marginRight: '8px' }}
+                                                      ></span>
+                                                  )}
+                                                  <span className={`badge status-pill status-pill-${ticket.status.toLowerCase().replace(' ', '_')}`}>
+                                                      {ticket.status}
+                                                  </span>
+                                                  <i className="fa-solid fa-chevron-down accordion-chevron"></i>
+                                              </div>
                                         </div>
 
                                         {/* Cuerpo expandible */}
@@ -1499,6 +1502,23 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                         <i className="fa-regular fa-comments"></i> Abrir Chat
                                     </button>
                                 </div>
+                                <div className="detail-meta-item">
+                                    <label>Historial de Ticket</label>
+                                    <button 
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ width: '100%', padding: '4px', fontSize: '0.8rem', marginTop: '2px' }}
+                                        onClick={() => {
+                                            setAuditLogTicket(selectedDetailTicket);
+                                            setIsAuditModalOpen(true);
+                                        }}
+                                    >
+                                        <i className="fa-solid fa-clock-rotate-left"></i> Ver Historial
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style={{ marginBottom: '16px' }}>
+                                <SlaProgressBar ticket={selectedDetailTicket} showDetails={true} />
                             </div>
 
                             {selectedDetailTicket.status === 'Rechazado' && selectedDetailTicket.rejection_reason && (
@@ -1678,6 +1698,18 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
             )}
 
             {/* El modal antiguo de gestión de usuarios ha sido removido y transformado en una vista a pantalla completa */}
+
+            {/* MODAL: Historial de Auditoría (Audit Log) */}
+            {isAuditModalOpen && auditLogTicket && (
+                <AuditLogModal 
+                    isOpen={isAuditModalOpen} 
+                    onClose={() => {
+                        setIsAuditModalOpen(false);
+                        setAuditLogTicket(null);
+                    }}
+                    ticket={auditLogTicket}
+                />
+            )}
         </div>
     );
 }

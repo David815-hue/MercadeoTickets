@@ -1,0 +1,6 @@
+- [x] Add real-time tickets table subscription in `AdminDashboard.jsx`
+- [x] Define `getSLALimitDays` in `AdminDashboard.jsx` and add visual warning badge for SLA exceeded tickets
+- [x] Add real-time tickets table subscription in `PharmacyDashboard.jsx`
+- [x] Define `getSLALimitDays` in `PharmacyDashboard.jsx` and add visual warning badge for SLA exceeded tickets
+- [x] Add `.sla-exceeded` styling and pulsing animation in `index.css`
+- [x] Verify using lint and build

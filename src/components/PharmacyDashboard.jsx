@@ -3,6 +3,8 @@ import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
 import { toast } from 'sonner';
 import FormSelect from './FormSelect';
+import SlaProgressBar from './SlaProgressBar';
+import AuditLogModal from './AuditLogModal';
 
 const CATEGORY_DURATIONS = {
     'Artes Digital': '5 días',
@@ -58,6 +60,42 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         };
     };
 
+    const getSLALimitDays = (ticket) => {
+        if (!ticket || !ticket.request_type) return Infinity;
+        const type = ticket.request_type;
+        const formData = ticket.form_data || {};
+
+        if (type === 'Artes Digital') {
+            return 5;
+        }
+
+        if (type === 'Rotulación Interna' || type === 'Rotulación interna') {
+            const tipoRotulacion = formData.tipoRotulacion || '';
+            return tipoRotulacion === 'Cubre Caja' ? 10 : 3;
+        }
+
+        if (type === 'Material para impresión' || type === 'Material para impresion') {
+            return 10;
+        }
+
+        if (type === 'Recetarios Médicos' || type === 'Recetarios medicos') {
+            return 20;
+        }
+
+        if (
+            type.includes('Insumos / utilería') ||
+            type.includes('Insumos / utileria') ||
+            type.includes('utilería') ||
+            type.includes('utileria') ||
+            type.includes('Insumos')
+        ) {
+            return 3;
+        }
+
+        return Infinity;
+    };
+
+
 
     // Estados del Wizard de Creación
     const [wizardStep, setWizardStep] = useState(1);
@@ -74,10 +112,13 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
     const [fileUploadProgresses, setFileUploadProgresses] = useState({});
     const fileInputRef = useRef(null);
     
+
     // Estados de modales
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-    
+    const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+    const [auditLogTicket, setAuditLogTicket] = useState(null);
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -150,6 +191,37 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
             channel.unsubscribe();
         };
     }, [activeTicket, isChatModalOpen, currentUser.id]);
+
+    // Suscribirse a cambios en tiempo real en la tabla de tickets
+    useEffect(() => {
+        const ticketsChannel = supabase.channel('pharmacy_tickets_realtime')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'tickets'
+            }, (payload) => {
+                const { eventType, new: newTicket, old: oldTicket } = payload;
+                if (eventType === 'INSERT') {
+                    if (newTicket.user_id !== currentUser.id) return;
+                    setTickets(prev => {
+                        if (prev.some(t => t.id === newTicket.id)) return prev;
+                        return [newTicket, ...prev];
+                    });
+                } else if (eventType === 'UPDATE') {
+                    if (newTicket.user_id !== currentUser.id) return;
+                    setTickets(prev => prev.map(t => t.id === newTicket.id ? newTicket : t));
+                    setActiveTicket(prev => prev && prev.id === newTicket.id ? newTicket : prev);
+                } else if (eventType === 'DELETE') {
+                    setTickets(prev => prev.filter(t => t.id !== oldTicket.id));
+                    setActiveTicket(prev => prev && prev.id === oldTicket.id ? null : prev);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            ticketsChannel.unsubscribe();
+        };
+    }, [currentUser.id]);
 
     const loadTickets = async () => {
         setIsLoading(true);
@@ -730,7 +802,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                     >
                                         {/* Cabecera del acordeón */}
                                         <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>
-                                             <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                             <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '8px' }}>
                                                  <span className="accordion-ticket-id">
                                                      {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}
                                                  </span>
@@ -747,16 +819,22 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                          {ticket.request_type}
                                                      </span>
                                                  )}
-                                                <span 
-                                                    className="accordion-ticket-desc" 
-                                                    style={{ 
-                                                        color: 'var(--text-secondary)', 
-                                                        fontSize: '0.9rem',
-                                                        fontWeight: '500'
-                                                    }}
-                                                >
-                                                    — {ticket.description}
-                                                </span>
+                                                 <span 
+                                                     className="accordion-ticket-desc" 
+                                                     style={{ 
+                                                         color: 'var(--text-secondary)', 
+                                                         fontSize: '0.9rem', 
+                                                         fontWeight: '500',
+                                                         overflow: 'hidden',
+                                                         textOverflow: 'ellipsis',
+                                                         whiteSpace: 'nowrap',
+                                                         flex: '1 1 auto',
+                                                         minWidth: '0'
+                                                     }}
+                                                     title={ticket.description}
+                                                 >
+                                                     — {ticket.description}
+                                                 </span>
                                              </div>
                                              <div className="accordion-header-right">
                                                  {hasUnread && (
@@ -769,58 +847,61 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                      {ticket.status}
                                                  </span>
                                                  <i className="fa-solid fa-chevron-down accordion-chevron"></i>
-                                             </div>
-                                        </div>
-
-                                        {/* Cuerpo expandible */}
-                                        {isExpanded && (
-                                            <div className="accordion-body" style={{ paddingTop: '20px' }}>
-                                                {ticket.status === 'Rechazado' && ticket.rejection_reason && (
-                                                    <div className="rejection-reason-banner" style={{ marginBottom: '16px' }}>
-                                                        <i className="fa-solid fa-circle-xmark"></i>
-                                                        <div>
-                                                            <strong>Motivo de rechazo:</strong> {ticket.rejection_reason}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {ticket.request_type ? (
-                                                    renderStructuredDetails(ticket)
-                                                ) : (
-                                                    <div className="detail-description-box" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
-                                                        <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Descripción</h5>
-                                                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
-                                                    </div>
-                                                )}
-                                                <div className="accordion-body-row" style={{ padding: '16px 0 0 0', borderTop: '1px solid var(--border-color)', marginTop: '8px', flexWrap: 'wrap', gap: '12px' }}>
-                                                     <div className="flex-row gap-12 align-center">
-                                                         <span className="accordion-body-date">
-                                                             <i className="fa-regular fa-clock"></i> {fecha}
-                                                         </span>
-                                                         {(() => {
-                                                             const daysInfo = getDaysElapsedInfo(ticket);
-                                                             return (
-                                                                 <span className={`days-elapsed-badge ${!daysInfo.hasStarted ? 'pending' : ''}`}>
-                                                                     <i className={daysInfo.hasStarted ? "fa-solid fa-calendar-check" : "fa-regular fa-clock"}></i>
-                                                                     {daysInfo.hasStarted ? (
-                                                                         `Días transcurridos: ${daysInfo.days}`
-                                                                     ) : (
-                                                                         `Conteo inicia el ${daysInfo.startDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}`
-                                                                     )}
-                                                                 </span>
-                                                             );
-                                                         })()}
-                                                     </div>
-                                                     <button 
-                                                         className={`btn ${hasUnread ? 'btn-danger' : 'btn-secondary'} btn-sm unread-badge-container`}
-                                                         onClick={() => handleOpenChat(ticket)}
-                                                     >
-                                                         <i className="fa-regular fa-comments"></i>
-                                                         <span>Chat de Soporte</span>
-                                                         {hasUnread && <span className="pulsing-alert-dot"></span>}
-                                                     </button>
                                                 </div>
                                             </div>
-                                        )}
+
+                                             {/* Cuerpo expandible */}
+                                             {isExpanded && (
+                                                 <div className="accordion-body" style={{ paddingTop: '20px' }}>
+                                                     <div style={{ marginBottom: '16px' }}>
+                                                         <SlaProgressBar ticket={ticket} showDetails={true} />
+                                                     </div>
+                                                     {ticket.status === 'Rechazado' && ticket.rejection_reason && (
+                                                         <div className="rejection-reason-banner" style={{ marginBottom: '16px' }}>
+                                                             <i className="fa-solid fa-circle-xmark"></i>
+                                                             <div>
+                                                                 <strong>Motivo de rechazo:</strong> {ticket.rejection_reason}
+                                                             </div>
+                                                         </div>
+                                                     )}
+                                                     {ticket.request_type ? (
+                                                         renderStructuredDetails(ticket)
+                                                     ) : (
+                                                         <div className="detail-description-box" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+                                                             <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Descripción</h5>
+                                                             <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
+                                                         </div>
+                                                     )}
+                                                     <div className="accordion-body-row" style={{ padding: '16px 0 0 0', borderTop: '1px solid var(--border-color)', marginTop: '8px', flexWrap: 'wrap', gap: '12px' }}>
+                                                          <div className="flex-row gap-12 align-center">
+                                                              <span className="accordion-body-date">
+                                                                  <i className="fa-regular fa-clock"></i> {fecha}
+                                                              </span>
+                                                          </div>
+                                                          <div className="flex-row gap-12 align-center">
+                                                              <button 
+                                                                  className="btn btn-secondary btn-sm"
+                                                                  onClick={() => {
+                                                                      setAuditLogTicket(ticket);
+                                                                      setIsAuditModalOpen(true);
+                                                                  }}
+                                                                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                              >
+                                                                  <i className="fa-solid fa-clock-rotate-left"></i>
+                                                                  <span>Historial</span>
+                                                              </button>
+                                                              <button 
+                                                                  className={`btn ${hasUnread ? 'btn-danger' : 'btn-secondary'} btn-sm unread-badge-container`}
+                                                                  onClick={() => handleOpenChat(ticket)}
+                                                              >
+                                                                  <i className="fa-regular fa-comments"></i>
+                                                                  <span>Chat de Soporte</span>
+                                                                  {hasUnread && <span className="pulsing-alert-dot"></span>}
+                                                              </button>
+                                                          </div>
+                                                     </div>
+                                                 </div>
+                                             )}
                                     </div>
                                 );
                             })
@@ -1613,6 +1694,18 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* MODAL: Historial de Auditoría (Audit Log) */}
+            {isAuditModalOpen && auditLogTicket && (
+                <AuditLogModal 
+                    isOpen={isAuditModalOpen} 
+                    onClose={() => {
+                        setIsAuditModalOpen(false);
+                        setAuditLogTicket(null);
+                    }}
+                    ticket={auditLogTicket}
+                />
             )}
         </div>
     );

@@ -84,6 +84,15 @@ WITH CHECK (
     (auth.jwt() ->> 'email') LIKE 'admin%'
 );
 
+CREATE POLICY "Actualizar tickets propios (farmacia)" 
+ON public.tickets FOR UPDATE 
+USING (
+    user_id = auth.uid() AND (auth.jwt() ->> 'email') NOT LIKE 'admin%' AND status = 'Recibido'
+)
+WITH CHECK (
+    user_id = auth.uid() AND (auth.jwt() ->> 'email') NOT LIKE 'admin%' AND status = 'Recibido'
+);
+
 -- POLÍTICAS PARA MENSAJES (CHAT)
 CREATE POLICY "Ver mensajes" 
 ON public.messages FOR SELECT 
@@ -378,4 +387,118 @@ ALTER TABLE public.tickets ALTER COLUMN status SET DEFAULT 'Recibido';
 ALTER TABLE public.tickets ADD CONSTRAINT tickets_status_check CHECK (status IN ('Recibido', 'En Proceso', 'En Revision', 'Aprobado', 'Finalizado', 'Rechazado'));
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS finalized_at TIMESTAMP WITH TIME ZONE;
+
+-- ====================================================
+-- MEJORAS DE NOTAS DE ADMIN Y AUDITORÍA (HISTORIAL)
+-- ====================================================
+
+-- 8. Crear tabla de Notas Internas de Administrador si no existe
+CREATE TABLE IF NOT EXISTS public.admin_notes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    ticket_id UUID REFERENCES public.tickets(id) ON DELETE CASCADE NOT NULL,
+    admin_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    admin_name TEXT NOT NULL,
+    note_text TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Habilitar RLS en admin_notes
+ALTER TABLE public.admin_notes ENABLE ROW LEVEL SECURITY;
+
+-- Políticas para admin_notes
+DROP POLICY IF EXISTS "Permitir a los administradores leer notas" ON public.admin_notes;
+CREATE POLICY "Permitir a los administradores leer notas"
+ON public.admin_notes FOR SELECT
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = auth.uid() AND role = 'admin'
+    )
+);
+
+DROP POLICY IF EXISTS "Permitir a los administradores insertar notas" ON public.admin_notes;
+CREATE POLICY "Permitir a los administradores insertar notas"
+ON public.admin_notes FOR INSERT
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = auth.uid() AND role = 'admin'
+    )
+);
+
+DROP POLICY IF EXISTS "Permitir a los administradores borrar notas" ON public.admin_notes;
+CREATE POLICY "Permitir a los administradores borrar notas"
+ON public.admin_notes FOR DELETE
+USING (
+    EXISTS (
+        SELECT 1 FROM public.profiles 
+        WHERE id = auth.uid() AND role = 'admin'
+    )
+);
+
+-- 9. Crear tabla de Historial/Auditoría de Tickets
+CREATE TABLE IF NOT EXISTS public.ticket_history (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    ticket_id UUID REFERENCES public.tickets(id) ON DELETE CASCADE NOT NULL,
+    changed_by_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    changed_by_name TEXT NOT NULL,
+    previous_status TEXT,
+    new_status TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Habilitar RLS en ticket_history
+ALTER TABLE public.ticket_history ENABLE ROW LEVEL SECURITY;
+
+-- Políticas de RLS para ticket_history
+DROP POLICY IF EXISTS "Permitir leer historial a usuarios asociados al ticket" ON public.ticket_history;
+CREATE POLICY "Permitir leer historial a usuarios asociados al ticket" 
+ON public.ticket_history FOR SELECT 
+USING (
+    EXISTS (
+        SELECT 1 FROM public.tickets 
+        WHERE id = ticket_id AND (user_id = auth.uid() OR (auth.jwt() ->> 'email') LIKE 'admin%')
+    )
+);
+
+DROP POLICY IF EXISTS "Permitir insertar historial a administradores o triggers" ON public.ticket_history;
+CREATE POLICY "Permitir insertar historial a administradores o triggers" 
+ON public.ticket_history FOR INSERT 
+WITH CHECK (true);
+
+-- 10. Función y Trigger automático para auditoría de cambios de estado en public.tickets
+CREATE OR REPLACE FUNCTION public.log_ticket_status_change()
+RETURNS trigger AS $$
+DECLARE
+    caller_username TEXT;
+BEGIN
+    -- Obtener nombre de usuario que realiza el cambio
+    SELECT username INTO caller_username FROM public.profiles WHERE id = auth.uid();
+    IF caller_username IS NULL THEN
+        caller_username := 'Sistema';
+    END IF;
+
+    -- Si cambió el estado, registrar en el historial
+    IF OLD.status IS DISTINCT FROM NEW.status THEN
+        INSERT INTO public.ticket_history (ticket_id, changed_by_id, changed_by_name, previous_status, new_status)
+        VALUES (NEW.id, auth.uid(), caller_username, OLD.status, NEW.status);
+    END IF;
+
+    -- Actualizar fecha de finalización si aplica
+    IF NEW.status IN ('Finalizado', 'Aprobado', 'Rechazado') AND OLD.status NOT IN ('Finalizado', 'Aprobado', 'Rechazado') THEN
+        NEW.finalized_at := now();
+    ELSIF NEW.status NOT IN ('Finalizado', 'Aprobado', 'Rechazado') THEN
+        NEW.finalized_at := NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Instalar Trigger
+DROP TRIGGER IF EXISTS on_ticket_status_update ON public.tickets;
+CREATE TRIGGER on_ticket_status_update
+  BEFORE UPDATE ON public.tickets
+  FOR EACH ROW EXECUTE FUNCTION public.log_ticket_status_change();
+
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { draggable, dropTargetForElements, monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { setCustomNativeDragPreview } from '@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview';
 import { toast } from 'sonner';
+import SlaProgressBar from './SlaProgressBar';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -171,6 +172,7 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
                     </div>
                 </div>
                 <p className="kanban-card-desc">{ticket.description}</p>
+                <SlaProgressBar ticket={ticket} />
             </div>
 
         </div>
