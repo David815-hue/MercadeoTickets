@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import ChatPanel from './ChatPanel';
 import KanbanBoard from './KanbanBoard';
 import CustomStatusDropdown from './CustomStatusDropdown';
+import CustomPriorityDropdown from './CustomPriorityDropdown';
 import CustomFilterDropdown from './CustomFilterDropdown';
 import { toast } from 'sonner';
 import FormSelect from './FormSelect';
@@ -21,7 +22,13 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [isLoading, setIsLoading] = useState(false);
     const [expandedTicketId, setExpandedTicketId] = useState(null);
     const [dbStatus, setDbStatus] = useState(null);
-    const [viewType, setViewType] = useState('list'); // 'list', 'kanban', 'users' o 'workspace'
+    const [viewType, setViewType] = useState(() => {
+        return localStorage.getItem('admin_view_type') || 'list';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('admin_view_type', viewType);
+    }, [viewType]);
     const [selectedDetailTicket, setSelectedDetailTicket] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
@@ -215,6 +222,40 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
         } catch (e) {
             console.error('Error al cambiar estado:', e);
             toast.error('No se pudo actualizar el estado del ticket.');
+        }
+    };
+
+    const handlePriorityChange = async (ticketId, newPriority) => {
+        try {
+            const { error } = await supabase
+                .from('tickets')
+                .update({ priority: newPriority })
+                .eq('id', ticketId);
+
+            if (error) throw error;
+
+            setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, priority: newPriority } : t));
+            if (activeTicket && activeTicket.id === ticketId) {
+                setActiveTicket(prev => ({ ...prev, priority: newPriority }));
+            }
+            if (selectedDetailTicket && selectedDetailTicket.id === ticketId) {
+                setSelectedDetailTicket(prev => ({ ...prev, priority: newPriority }));
+            }
+
+            toast.success(`Prioridad del ticket actualizada a "${newPriority}"`);
+
+            await supabase
+                .from('messages')
+                .insert({
+                    ticket_id: ticketId,
+                    sender_id: currentUser.id,
+                    sender_name: 'Sistema',
+                    message_text: `La prioridad del ticket ha sido cambiada a: **${newPriority}**`
+                });
+
+        } catch (e) {
+            console.error('Error al cambiar prioridad:', e);
+            toast.error('No se pudo actualizar la prioridad del ticket.');
         }
     };
 
@@ -998,6 +1039,10 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                         value={activeTicket.status}
                                                         onChange={(val) => handleStatusChange(activeTicket.id, val)}
                                                     />
+                                                    <CustomPriorityDropdown 
+                                                        value={activeTicket.priority || 'Normal'}
+                                                        onChange={(val) => handlePriorityChange(activeTicket.id, val)}
+                                                    />
                                                 </div>
                                             </div>
 
@@ -1142,7 +1187,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                  </span>
                                                  {hasUnread && <span className="badge-unread" style={{ flexShrink: 0 }}>Nuevo Mensaje</span>}
                                                  {ticket.priority && (
-                                                     <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase()}`} style={{ flexShrink: 0 }}>
+                                                     <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase().replace(' ', '-')}`} style={{ flexShrink: 0 }}>
                                                          <i className="fa-solid fa-circle-exclamation"></i>
                                                          {ticket.priority}
                                                      </span>
@@ -1210,6 +1255,15 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                               <CustomStatusDropdown 
                                                                   value={ticket.status}
                                                                   onChange={(val) => handleStatusChange(ticket.id, val)}
+                                                              />
+                                                          </div>
+                                                          <div className="status-selector-wrapper">
+                                                              <span className="status-selector-label">
+                                                                  Prioridad:
+                                                              </span>
+                                                              <CustomPriorityDropdown 
+                                                                  value={ticket.priority || 'Normal'}
+                                                                  onChange={(val) => handlePriorityChange(ticket.id, val)}
                                                               />
                                                           </div>
                                                           <button 
@@ -1494,6 +1548,13 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                     <CustomStatusDropdown 
                                         value={selectedDetailTicket.status}
                                         onChange={(val) => handleStatusChange(selectedDetailTicket.id, val)}
+                                    />
+                                </div>
+                                <div className="detail-meta-item" style={{ overflow: 'visible' }}>
+                                    <label>Prioridad</label>
+                                    <CustomPriorityDropdown 
+                                        value={selectedDetailTicket.priority || 'Normal'}
+                                        onChange={(val) => handlePriorityChange(selectedDetailTicket.id, val)}
                                     />
                                 </div>
                                 <div className="detail-meta-item">

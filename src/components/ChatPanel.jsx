@@ -3,7 +3,17 @@ import { supabase } from '../supabaseClient';
 import CustomStatusDropdown from './CustomStatusDropdown';
 import { toast } from 'sonner';
 
-
+function getRequestTypeIcon(type) {
+    if (!type) return 'fa-solid fa-circle-info';
+    const t = type.toLowerCase();
+    if (t.includes('artes') || t.includes('digital')) return 'fa-solid fa-laptop-code';
+    if (t.includes('rotulación interna') || t.includes('interna')) return 'fa-solid fa-sheet-plastic';
+    if (t.includes('impresión') || t.includes('impresion')) return 'fa-solid fa-print';
+    if (t.includes('recetario')) return 'fa-solid fa-file-medical';
+    if (t.includes('insumo') || t.includes('jornada') || t.includes('utilería') || t.includes('activacion')) return 'fa-solid fa-kit-medical';
+    if (t.includes('rotulación externa') || t.includes('externa')) return 'fa-solid fa-store';
+    return 'fa-solid fa-file-lines';
+}
 
 export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange }) {
     const [messages, setMessages] = useState([]);
@@ -223,31 +233,57 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
     return (
         <div className="chat-container">
             {/* Cabecera del chat */}
-            <div className="chat-header flex-row justify-between align-center">
-                <div className="chat-ticket-info">
-                    <h4>Ticket {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}</h4>
+            <div className="chat-header">
+                <div className="chat-header-top flex-row justify-between align-center" style={{ marginBottom: '14px', width: '100%', gap: '16px' }}>
+                    <div className="chat-ticket-meta">
+                        <h4 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
+                            Ticket {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}
+                        </h4>
+                        <div className="chat-meta-sub" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            {isAdmin ? (
+                                <span>
+                                    <i className="fa-solid fa-hospital" style={{ marginRight: '4px', color: 'var(--color-primary)' }}></i>
+                                    <strong>{ticket.pharmacy_name}</strong>
+                                </span>
+                            ) : (
+                                <span>
+                                    <i className="fa-regular fa-calendar" style={{ marginRight: '4px' }}></i>
+                                    Emisión
+                                </span>
+                            )}
+                            <span>•</span>
+                            <span>{new Date(ticket.created_at).toLocaleDateString('es-ES')}</span>
+                            {ticket.request_type && (
+                                <>
+                                    <span>•</span>
+                                    <span className="chat-category-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(99, 102, 241, 0.08)', color: 'var(--color-primary)', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                        <i className={getRequestTypeIcon(ticket.request_type)}></i>
+                                        {ticket.request_type}
+                                    </span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Control de Estado */}
                     {isAdmin ? (
-                        <p><i className="fa-solid fa-hospital"></i> <strong>{ticket.pharmacy_name}</strong> - {new Date(ticket.created_at).toLocaleDateString('es-ES')}</p>
+                        <div className="admin-status-control-clean" style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'visible' }} onClick={(e) => e.stopPropagation()}>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Estado:</span>
+                            <CustomStatusDropdown 
+                                value={ticket.status}
+                                onChange={(val) => onStatusChange(ticket.id, val)}
+                            />
+                        </div>
                     ) : (
-                        <p><i className="fa-regular fa-calendar"></i> Emisión: {new Date(ticket.created_at).toLocaleDateString('es-ES')}</p>
+                        <div className="chat-ticket-status">
+                            <span className={`badge status-pill status-pill-${ticket.status.toLowerCase().replace(' ', '_')}`}>{ticket.status}</span>
+                        </div>
                     )}
-                    <p className="chat-ticket-desc">{ticket.description}</p>
                 </div>
 
-                {/* Control de Estado */}
-                {isAdmin ? (
-                    <div className="admin-status-control" style={{ overflow: 'visible' }}>
-                        <label>Estado del Ticket</label>
-                        <CustomStatusDropdown 
-                            value={ticket.status}
-                            onChange={(val) => onStatusChange(ticket.id, val)}
-                        />
-                    </div>
-                ) : (
-                    <div className="chat-ticket-status">
-                        <span className={`badge badge-${ticket.status.toLowerCase().replace(' ', '_')}`}>{ticket.status}</span>
-                    </div>
-                )}
+                <div className="chat-ticket-desc-banner" title={ticket.description}>
+                    <span className="desc-banner-label">Descripción:</span> {ticket.description}
+                </div>
             </div>
 
             {/* Cuerpo del chat (Mensajes) */}

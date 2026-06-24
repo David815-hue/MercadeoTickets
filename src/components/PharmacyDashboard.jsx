@@ -100,7 +100,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
     // Estados del Wizard de Creación
     const [wizardStep, setWizardStep] = useState(1);
     const [requesterRole, setRequesterRole] = useState('Jefe de Tienda');
-    const [ticketPriority, setTicketPriority] = useState('Normal');
+    const [ticketPriority, setTicketPriority] = useState('Sin prioridad');
     const [ticketObjective, setTicketObjective] = useState('');
     const [ticketAdditionalInfo, setTicketAdditionalInfo] = useState('');
     const [requestType, setRequestType] = useState('');
@@ -282,7 +282,6 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         } else if (requestType === 'Recetarios Médicos') {
             defaultData.tipoRecetario = 'Recetario Normal';
             defaultData.nombreMedico = '';
-            defaultData.codigoColegiado = '';
             defaultData.ubicacionClinica = '';
             defaultData.informacionContacto = '';
         } else if (requestType === 'Insumos / utilería para activaciones o jornadas médicas') {
@@ -409,7 +408,6 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         } else if (requestType === 'Recetarios Médicos') {
             if (!(stepSpecificData.tipoRecetario || '').trim()) errors.tipoRecetario = true;
             if (!(stepSpecificData.nombreMedico || '').trim()) errors.nombreMedico = true;
-            if (!(stepSpecificData.codigoColegiado || '').trim()) errors.codigoColegiado = true;
             if (!(stepSpecificData.ubicacionClinica || '').trim()) errors.ubicacionClinica = true;
             if (!(stepSpecificData.informacionContacto || '').trim()) errors.informacionContacto = true;
         } else if (requestType === 'Insumos / utilería para activaciones o jornadas médicas') {
@@ -456,7 +454,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
     const openCreateModal = () => {
         setWizardStep(1);
         setRequesterRole('Jefe de Tienda');
-        setTicketPriority('Normal');
+        setTicketPriority('Sin prioridad');
         setTicketObjective('');
         setTicketAdditionalInfo('');
         setRequestType('');
@@ -555,7 +553,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
 
             setWizardStep(1);
             setRequesterRole('Jefe de Tienda');
-            setTicketPriority('Normal');
+            setTicketPriority('Sin prioridad');
             setTicketObjective('');
             setTicketAdditionalInfo('');
             setRequestType('');
@@ -807,7 +805,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                      {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}
                                                  </span>
                                                  {hasUnread && <span className="badge-unread" style={{ flexShrink: 0 }}>Nuevo Mensaje</span>}
-                                                 {ticket.priority && (
+                                                 {ticket.priority && ticket.priority !== 'Sin prioridad' && (
                                                      <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase()}`} style={{ flexShrink: 0 }}>
                                                          <i className="fa-solid fa-circle-exclamation"></i>
                                                          {ticket.priority}
@@ -956,33 +954,6 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                 <i className="fa-solid fa-user-shield"></i>
                                                 <span>Jefe de Tienda</span>
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="input-group">
-                                        <label>Nivel de Prioridad</label>
-                                        <div className="priority-selector-row">
-                                            <button
-                                                type="button"
-                                                className={`priority-option-btn priority-normal ${ticketPriority === 'Normal' ? 'active' : ''}`}
-                                                onClick={() => setTicketPriority('Normal')}
-                                            >
-                                                <i className="fa-solid fa-circle-check"></i> Normal
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={`priority-option-btn priority-alta ${ticketPriority === 'Alta' ? 'active' : ''}`}
-                                                onClick={() => setTicketPriority('Alta')}
-                                            >
-                                                <i className="fa-solid fa-circle-exclamation"></i> Alta
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={`priority-option-btn priority-urgente ${ticketPriority === 'Urgente' ? 'active' : ''}`}
-                                                onClick={() => setTicketPriority('Urgente')}
-                                            >
-                                                <i className="fa-solid fa-triangle-exclamation"></i> Urgente
-                                            </button>
                                         </div>
                                     </div>
 
@@ -1329,21 +1300,6 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                     placeholder="Ejemplo: Dr. Juan Pérez - Pediatra"
                                                     value={stepSpecificData.nombreMedico || ''} 
                                                     onChange={(e) => updateStepSpecificField('nombreMedico', e.target.value)}
-                                                />
-                                            </div>
-
-                                            <div className="input-group">
-                                                <label htmlFor="codigo-colega">
-                                                    Código de Colegiado o Registro Médico
-                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
-                                                </label>
-                                                <input 
-                                                    type="text" 
-                                                    id="codigo-colega" 
-                                                    className={validationErrors.codigoColegiado ? 'input-invalid' : ''}
-                                                    placeholder="Ejemplo: Col. 12345"
-                                                    value={stepSpecificData.codigoColegiado || ''} 
-                                                    onChange={(e) => updateStepSpecificField('codigoColegiado', e.target.value)}
                                                 />
                                             </div>
 
@@ -1824,12 +1780,14 @@ function renderStructuredDetails(ticket) {
                     <span className="structured-detail-value">{ticket.requester_role || 'No especificado'}</span>
                 </div>
                 
-                <div className="structured-detail-item">
-                    <span className="structured-detail-label">Prioridad</span>
-                    <span className={`structured-detail-value priority-val-${(ticket.priority || 'Normal').toLowerCase()}`}>
-                        {ticket.priority || 'Normal'}
-                    </span>
-                </div>
+                {ticket.priority && ticket.priority !== 'Sin prioridad' && (
+                    <div className="structured-detail-item">
+                        <span className="structured-detail-label">Prioridad</span>
+                        <span className={`structured-detail-value priority-val-${ticket.priority.toLowerCase()}`}>
+                            {ticket.priority}
+                        </span>
+                    </div>
+                )}
 
                 {halfWidthEntries.map(([key, val]) => {
                     const label = getReadableLabel(key);

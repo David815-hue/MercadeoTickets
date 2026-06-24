@@ -31,21 +31,22 @@ function getElapsedDays(ticket) {
 function getSLALimitDays(ticket) {
     if (!ticket || !ticket.request_type) return Infinity;
     const type = ticket.request_type;
+    const t = type.toLowerCase();
     const formData = ticket.form_data || {};
 
-    if (type === 'Artes Digital') return 5;
-    if (type === 'Rotulación Interna' || type === 'Rotulación interna') {
+    if (t.includes('artes digital') || t.includes('artes digitales')) return 5;
+    if (t.includes('rotulación interna') || t.includes('rotulacion interna')) {
         const tipoRotulacion = formData.tipoRotulacion || '';
         return tipoRotulacion === 'Cubre Caja' ? 10 : 3;
     }
-    if (type === 'Material para impresión' || type === 'Material para impresion') return 10;
-    if (type === 'Recetarios Médicos' || type === 'Recetarios medicos') return 20;
+    if (t.includes('material para impresión') || t.includes('material para impresion')) return 10;
+    if (t.includes('recetarios médicos') || t.includes('recetarios medicos') || t.includes('recetario')) return 20;
     if (
-        type.includes('Insumos / utilería') ||
-        type.includes('Insumos / utileria') ||
-        type.includes('utilería') ||
-        type.includes('utileria') ||
-        type.includes('Insumos')
+        t.includes('insumos / utilería') ||
+        t.includes('insumos / utileria') ||
+        t.includes('utilería') ||
+        t.includes('utileria') ||
+        t.includes('insumos')
     ) {
         return 3;
     }
@@ -62,7 +63,7 @@ export default function SlaProgressBar({ ticket, showDetails = false }) {
     if (slaLimit === Infinity) {
         return (
             <div className="sla-progress-container no-limit">
-                {showDetails && <span className="sla-label">SLA: Sin límite definido</span>}
+                {showDetails && <span className="sla-label">Tiempo de entrega: Sin límite definido</span>}
             </div>
         );
     }
@@ -95,10 +96,10 @@ export default function SlaProgressBar({ ticket, showDetails = false }) {
                 <span className="sla-title">
                     <i className={isFinished ? "fa-solid fa-calendar-check" : isOverdue ? "fa-solid fa-triangle-exclamation" : "fa-regular fa-clock"}></i>
                     {isFinished 
-                        ? `SLA Finalizado` 
+                        ? `Tiempo de entrega Finalizado` 
                         : !hasStarted 
-                            ? `SLA Pendiente` 
-                            : `SLA Activo`
+                            ? `Tiempo de entrega Pendiente` 
+                            : `Tiempo de entrega Activo`
                     }
                 </span>
                 <span className="sla-counter">

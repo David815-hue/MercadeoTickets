@@ -140,7 +140,7 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
             {(ticket.priority || ticket.request_type) && (
                 <div className="ticket-badge-wrap" style={{ marginTop: '2px', marginBottom: '4px' }}>
                     {ticket.priority && (
-                        <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase()}`}>
+                        <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase().replace(' ', '-')}`}>
                             <i className="fa-solid fa-circle-exclamation"></i>
                             {ticket.priority}
                         </span>
