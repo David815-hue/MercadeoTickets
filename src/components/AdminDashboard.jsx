@@ -1196,26 +1196,33 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                      </div>
                                                  )}
                                                  
-                                                 <div className="accordion-body-row" style={{ padding: '0 0 16px 0', borderBottom: '1px solid var(--border-color)', marginBottom: '16px' }}>
-                                                     <span className="accordion-body-date">
-                                                         <i className="fa-regular fa-clock"></i> {fecha}
-                                                     </span>
-                                                     <div className="accordion-body-status-ctrl" onClick={(e) => e.stopPropagation()}>
-                                                         <span className="accordion-body-status-label">Estado</span>
-                                                         <CustomStatusDropdown 
-                                                             value={ticket.status}
-                                                             onChange={(val) => handleStatusChange(ticket.id, val)}
-                                                         />
-                                                     </div>
-                                                     <button 
-                                                         className={`btn ${hasUnread ? 'btn-danger' : 'btn-primary'} btn-sm unread-badge-container`}
-                                                         onClick={() => handleOpenChat(ticket)}
-                                                     >
-                                                         <i className="fa-regular fa-comments"></i>
-                                                         <span>Interactuar</span>
-                                                         {hasUnread && <span className="pulsing-alert-dot"></span>}
-                                                     </button>
-                                                 </div>
+                                                 <div className="accordion-action-bar-premium">
+                                                      <div className="action-bar-meta">
+                                                          <span className="metadata-pill">
+                                                              <i className="fa-regular fa-clock"></i> {fecha}
+                                                          </span>
+                                                      </div>
+                                                      <div className="action-bar-controls" onClick={(e) => e.stopPropagation()}>
+                                                          <div className="status-selector-wrapper">
+                                                              <span className="status-selector-label">
+                                                                  Estado:
+                                                              </span>
+                                                              <CustomStatusDropdown 
+                                                                  value={ticket.status}
+                                                                  onChange={(val) => handleStatusChange(ticket.id, val)}
+                                                              />
+                                                          </div>
+                                                          <button 
+                                                              className={`btn ${hasUnread ? 'btn-danger' : 'btn-primary'} btn-sm unread-badge-container`}
+                                                              onClick={() => handleOpenChat(ticket)}
+                                                              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                          >
+                                                              <i className="fa-regular fa-comments"></i>
+                                                              <span>Interactuar</span>
+                                                              {hasUnread && <span className="pulsing-alert-dot"></span>}
+                                                          </button>
+                                                      </div>
+                                                  </div>
 
                                                  {ticket.request_type ? (
                                                      renderStructuredDetails(ticket)

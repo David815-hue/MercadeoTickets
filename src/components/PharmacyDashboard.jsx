@@ -872,33 +872,34 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                              <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
                                                          </div>
                                                      )}
-                                                     <div className="accordion-body-row" style={{ padding: '16px 0 0 0', borderTop: '1px solid var(--border-color)', marginTop: '8px', flexWrap: 'wrap', gap: '12px' }}>
-                                                          <div className="flex-row gap-12 align-center">
-                                                              <span className="accordion-body-date">
-                                                                  <i className="fa-regular fa-clock"></i> {fecha}
-                                                              </span>
-                                                          </div>
-                                                          <div className="flex-row gap-12 align-center">
-                                                              <button 
-                                                                  className="btn btn-secondary btn-sm"
-                                                                  onClick={() => {
-                                                                      setAuditLogTicket(ticket);
-                                                                      setIsAuditModalOpen(true);
-                                                                  }}
-                                                                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                                                              >
-                                                                  <i className="fa-solid fa-clock-rotate-left"></i>
-                                                                  <span>Historial</span>
-                                                              </button>
-                                                              <button 
-                                                                  className={`btn ${hasUnread ? 'btn-danger' : 'btn-secondary'} btn-sm unread-badge-container`}
-                                                                  onClick={() => handleOpenChat(ticket)}
-                                                              >
-                                                                  <i className="fa-regular fa-comments"></i>
-                                                                  <span>Chat de Soporte</span>
-                                                                  {hasUnread && <span className="pulsing-alert-dot"></span>}
-                                                              </button>
-                                                          </div>
+                                                     <div className="accordion-action-bar-premium">
+                                                         <div className="action-bar-meta">
+                                                             <span className="metadata-pill">
+                                                                 <i className="fa-regular fa-clock"></i> {fecha}
+                                                             </span>
+                                                         </div>
+                                                         <div className="action-bar-controls" onClick={(e) => e.stopPropagation()}>
+                                                             <button 
+                                                                 className="btn btn-secondary btn-sm"
+                                                                 onClick={() => {
+                                                                     setAuditLogTicket(ticket);
+                                                                     setIsAuditModalOpen(true);
+                                                                 }}
+                                                                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                             >
+                                                                 <i className="fa-solid fa-clock-rotate-left"></i>
+                                                                 <span>Historial</span>
+                                                             </button>
+                                                             <button 
+                                                                 className={`btn ${hasUnread ? 'btn-danger' : 'btn-secondary'} btn-sm unread-badge-container`}
+                                                                 onClick={() => handleOpenChat(ticket)}
+                                                                 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                             >
+                                                                 <i className="fa-regular fa-comments"></i>
+                                                                 <span>Chat de Soporte</span>
+                                                                 {hasUnread && <span className="pulsing-alert-dot"></span>}
+                                                             </button>
+                                                         </div>
                                                      </div>
                                                  </div>
                                              )}
