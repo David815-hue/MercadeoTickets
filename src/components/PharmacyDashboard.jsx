@@ -281,35 +281,53 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
             defaultData.textoMaterial = '';
             defaultData.aprobadorArte = '';
         } else if (requestType === 'Recetarios Médicos') {
-            defaultData.tipoRecetario = 'Recetario Normal';
             defaultData.nombreMedico = '';
-            defaultData.ubicacionClinica = '';
-            defaultData.informacionContacto = '';
+            defaultData.especialidadMedica = '';
+            defaultData.nombreClinica = '';
+            defaultData.direccionRecetario = '';
+            defaultData.telefonoConsultorio = '';
+            defaultData.horarioAtencion = '';
+            defaultData.cantidadRecetarios = '';
+            defaultData.tipoDiseno = '';
+            defaultData.incluyeLogo = '';
+            defaultData.otraInformacion = '';
         } else if (requestType === 'Insumos / utilería para activaciones o jornadas médicas') {
-            defaultData.insumos = [];
+            defaultData.tipoActividad = '';
+            defaultData.nombreActividad = '';
+            defaultData.fechaActividad = '';
+            defaultData.horarioActividad = '';
+            defaultData.lugarActividad = '';
+            defaultData.responsableSitio = '';
+            defaultData.objetivoActividad = '';
+            defaultData.insumosSolicitados = [];
             defaultData.insumosOtros = '';
-            defaultData.fechaEvento = '';
-            defaultData.ubicacionEvento = '';
-            defaultData.objetivoUso = '';
+            defaultData.detalleInsumos = '';
+            defaultData.requiereMontaje = '';
+            defaultData.requierePromotora = '';
+            defaultData.restriccionesPermisos = '';
         } else if (requestType === 'Rotulación Externa') {
-            defaultData.tipoRotulacionExterna = 'Fachada principal';
-            defaultData.medidas = '';
-            defaultData.indicacionesDiseno = '';
-            defaultData.estadoFachada = '';
+            defaultData.ubicacionInstalacion = '';
+            defaultData.tipoReparacion = '';
+            defaultData.medidasRotulo = '';
+            defaultData.fechaInstalacion = '';
+            defaultData.restriccionesPermisosExterna = '';
         }
         setStepSpecificData(defaultData);
     };
 
     const handleInsumoCheckboxChange = (insumoName) => {
         setStepSpecificData(prev => {
-            const currentInsumos = prev.insumos || [];
+            const currentInsumos = prev.insumosSolicitados || [];
             let updatedInsumos;
             if (currentInsumos.includes(insumoName)) {
                 updatedInsumos = currentInsumos.filter(item => item !== insumoName);
             } else {
                 updatedInsumos = [...currentInsumos, insumoName];
             }
-            return { ...prev, insumos: updatedInsumos };
+            if (updatedInsumos.length > 0) {
+                setValidationErrors(prevErrors => ({ ...prevErrors, insumosSolicitados: false }));
+            }
+            return { ...prev, insumosSolicitados: updatedInsumos };
         });
     };
 
@@ -330,7 +348,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
 
     const addFiles = (files) => {
         const maxFiles = requestType === 'Recetarios Médicos' ? 1 : 3;
-        const maxSizeMB = 5;
+        const maxSizeMB = requestType === 'Recetarios Médicos' ? 10 : 5;
         const maxSizeBytes = maxSizeMB * 1024 * 1024;
         
         let newFiles = [...selectedFiles];
@@ -407,21 +425,31 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
             if (!(stepSpecificData.textoMaterial || '').trim()) errors.textoMaterial = true;
             if (!(stepSpecificData.aprobadorArte || '').trim()) errors.aprobadorArte = true;
         } else if (requestType === 'Recetarios Médicos') {
-            if (!(stepSpecificData.tipoRecetario || '').trim()) errors.tipoRecetario = true;
             if (!(stepSpecificData.nombreMedico || '').trim()) errors.nombreMedico = true;
-            if (!(stepSpecificData.ubicacionClinica || '').trim()) errors.ubicacionClinica = true;
-            if (!(stepSpecificData.informacionContacto || '').trim()) errors.informacionContacto = true;
+            if (!(stepSpecificData.especialidadMedica || '').trim()) errors.especialidadMedica = true;
+            if (!(stepSpecificData.cantidadRecetarios || '').trim()) errors.cantidadRecetarios = true;
+            if (!(stepSpecificData.tipoDiseno || '').trim()) errors.tipoDiseno = true;
+            if (!(stepSpecificData.incluyeLogo || '').trim()) errors.incluyeLogo = true;
+            if (stepSpecificData.incluyeLogo === 'Si' && selectedFiles.length === 0) {
+                errors.logoRequired = true;
+            }
         } else if (requestType === 'Insumos / utilería para activaciones o jornadas médicas') {
-            const hasInsumo = (stepSpecificData.insumos || []).length > 0 || (stepSpecificData.insumosOtros || '').trim() !== '';
-            if (!hasInsumo) errors.insumos = true;
-            if (!(stepSpecificData.fechaEvento || '').trim()) errors.fechaEvento = true;
-            if (!(stepSpecificData.ubicacionEvento || '').trim()) errors.ubicacionEvento = true;
-            if (!(stepSpecificData.objetivoUso || '').trim()) errors.objetivoUso = true;
+            if (!(stepSpecificData.tipoActividad || '').trim()) errors.tipoActividad = true;
+            if (!(stepSpecificData.nombreActividad || '').trim()) errors.nombreActividad = true;
+            if (!(stepSpecificData.fechaActividad || '').trim()) errors.fechaActividad = true;
+            if (!(stepSpecificData.horarioActividad || '').trim()) errors.horarioActividad = true;
+            if (!(stepSpecificData.lugarActividad || '').trim()) errors.lugarActividad = true;
+            if (!(stepSpecificData.responsableSitio || '').trim()) errors.responsableSitio = true;
+            if (!(stepSpecificData.objetivoActividad || '').trim()) errors.objetivoActividad = true;
+            const hasInsumo = (stepSpecificData.insumosSolicitados || []).length > 0;
+            if (!hasInsumo) errors.insumosSolicitados = true;
+            
+            if (!(stepSpecificData.detalleInsumos || '').trim()) errors.detalleInsumos = true;
+            if (!(stepSpecificData.requiereMontaje || '').trim()) errors.requiereMontaje = true;
+            if (!(stepSpecificData.requierePromotora || '').trim()) errors.requierePromotora = true;
         } else if (requestType === 'Rotulación Externa') {
-            if (!(stepSpecificData.tipoRotulacionExterna || '').trim()) errors.tipoRotulacionExterna = true;
-            if (!(stepSpecificData.medidas || '').trim()) errors.medidas = true;
-            if (!(stepSpecificData.indicacionesDiseno || '').trim()) errors.indicacionesDiseno = true;
-            if (!(stepSpecificData.estadoFachada || '').trim()) errors.estadoFachada = true;
+            if (!(stepSpecificData.ubicacionInstalacion || '').trim()) errors.ubicacionInstalacion = true;
+            if (!(stepSpecificData.fechaInstalacion || '').trim()) errors.fechaInstalacion = true;
         }
         return errors;
     };
@@ -466,13 +494,56 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         setIsCreateModalOpen(true);
     };
 
+    const determineAssignee = (type, data) => {
+        if (type === 'Artes Digital') {
+            const sub = data.tipoMaterial;
+            if (['Post para redes sociales', 'Historia para redes sociales', 'Reel / video corto'].includes(sub)) {
+                return 'Yarleny';
+            }
+            if (['Banner web', 'HTML', 'Volante'].includes(sub)) {
+                return 'Angelica';
+            }
+            return 'Yarleny';
+        }
+        
+        if (type === 'Rotulación Interna') {
+            return 'Yosselin';
+        }
+        
+        if (type === 'Material para impresión') {
+            return 'Yoselin';
+        }
+        
+        if (type === 'Recetarios Médicos') {
+            return 'Angelica';
+        }
+        
+        if (type === 'Insumos / utilería para activaciones o jornadas médicas') {
+            const act = data.tipoActividad;
+            if (['Activación', 'Jornada médica', 'Feria de salud', 'Evento institucional', 'Congreso'].includes(act)) {
+                return 'Yoselin';
+            }
+            return 'Yosselin';
+        }
+        
+        if (type === 'Rotulación Externa') {
+            return 'Emma';
+        }
+        
+        return 'Sin asignar';
+    };
+
     const handleCreateTicket = async (e) => {
         e.preventDefault();
         
         const errors = getStep2Errors();
         if (Object.keys(errors).length > 0) {
             setValidationErrors(prev => ({ ...prev, ...errors }));
-            toast.error('Por favor complete todos los campos obligatorios en el formulario.');
+            if (errors.logoRequired) {
+                toast.error('Por favor, adjunte el archivo del logo si seleccionó que debe incluirlo.');
+            } else {
+                toast.error('Por favor complete todos los campos obligatorios en el formulario.');
+            }
             return;
         }
 
@@ -491,7 +562,8 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                     objective: ticketObjective.trim(),
                     additional_info: ticketAdditionalInfo.trim(),
                     form_data: stepSpecificData,
-                    attachments: []
+                    attachments: [],
+                    assigned_to: determineAssignee(requestType, stepSpecificData)
                 })
                 .select()
                 .single();
@@ -1284,62 +1356,142 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                     {requestType === 'Recetarios Médicos' && (
                                         <>
                                             <div className="input-group">
-                                                <label htmlFor="tipo-recetario">
-                                                    Tipo de Recetario solicitado
-                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
-                                                </label>
-                                                <FormSelect 
-                                                    id="tipo-recetario" 
-                                                    className={validationErrors.tipoRecetario ? 'input-invalid' : ''}
-                                                    value={stepSpecificData.tipoRecetario || ''} 
-                                                    onChange={(e) => updateStepSpecificField('tipoRecetario', e.target.value)}
-                                                    options={['Recetario Normal', 'Recetario Controlado / Especial']}
-                                                    placeholder="Seleccione tipo de recetario..."
-                                                />
-                                            </div>
-
-                                            <div className="input-group">
                                                 <label htmlFor="nombre-medico">
-                                                    Nombre completo y Especialidad del Médico
+                                                    Nombre del médico como debe aparecer en el recetario
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
                                                 <input 
                                                     type="text" 
                                                     id="nombre-medico" 
                                                     className={validationErrors.nombreMedico ? 'input-invalid' : ''}
-                                                    placeholder="Ejemplo: Dr. Juan Pérez - Pediatra"
+                                                    placeholder="Escriba el nombre del médico..."
                                                     value={stepSpecificData.nombreMedico || ''} 
                                                     onChange={(e) => updateStepSpecificField('nombreMedico', e.target.value)}
                                                 />
                                             </div>
 
                                             <div className="input-group">
-                                                <label htmlFor="ubicacion-clinica">
-                                                    Ubicación / Clínica del Médico
+                                                <label htmlFor="especialidad-medica">
+                                                    Especialidad médica
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
                                                 <input 
                                                     type="text" 
-                                                    id="ubicacion-clinica" 
-                                                    className={validationErrors.ubicacionClinica ? 'input-invalid' : ''}
-                                                    placeholder="Ejemplo: Clínica Médica San José, 3er nivel..."
-                                                    value={stepSpecificData.ubicacionClinica || ''} 
-                                                    onChange={(e) => updateStepSpecificField('ubicacionClinica', e.target.value)}
+                                                    id="especialidad-medica" 
+                                                    className={validationErrors.especialidadMedica ? 'input-invalid' : ''}
+                                                    placeholder="Escriba la especialidad médica..."
+                                                    value={stepSpecificData.especialidadMedica || ''} 
+                                                    onChange={(e) => updateStepSpecificField('especialidadMedica', e.target.value)}
                                                 />
                                             </div>
 
                                             <div className="input-group">
-                                                <label htmlFor="contacto-recetario">
-                                                    Información de contacto a colocar (teléfonos, correo, etc.)
+                                                <label htmlFor="nombre-clinica">
+                                                    Nombre de la clínica, hospital o consultorio (Opcional)
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="nombre-clinica" 
+                                                    placeholder="Escriba el nombre de la clínica..."
+                                                    value={stepSpecificData.nombreClinica || ''} 
+                                                    onChange={(e) => updateStepSpecificField('nombreClinica', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="direccion-recetario">
+                                                    Dirección que debe aparecer en el recetario (Opcional)
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="direccion-recetario" 
+                                                    placeholder="Escriba la dirección..."
+                                                    value={stepSpecificData.direccionRecetario || ''} 
+                                                    onChange={(e) => updateStepSpecificField('direccionRecetario', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="telefono-consultorio">
+                                                    Teléfono / WhatsApp / contacto del consultorio (Opcional)
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="telefono-consultorio" 
+                                                    placeholder="Escriba el contacto del consultorio..."
+                                                    value={stepSpecificData.telefonoConsultorio || ''} 
+                                                    onChange={(e) => updateStepSpecificField('telefonoConsultorio', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="horario-atencion">
+                                                    Horario de atención, si aplica (Opcional)
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="horario-atencion" 
+                                                    placeholder="Escriba el horario de atención..."
+                                                    value={stepSpecificData.horarioAtencion || ''} 
+                                                    onChange={(e) => updateStepSpecificField('horarioAtencion', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="cantidad-recetarios">
+                                                    Cantidad de recetarios solicitados
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="cantidad-recetarios" 
+                                                    className={validationErrors.cantidadRecetarios ? 'input-invalid' : ''}
+                                                    placeholder="Escriba la cantidad..."
+                                                    value={stepSpecificData.cantidadRecetarios || ''} 
+                                                    onChange={(e) => updateStepSpecificField('cantidadRecetarios', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="tipo-diseno">
+                                                    ¿Desea diseño nuevo o repetir diseño anterior?
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <FormSelect 
+                                                    id="tipo-diseno" 
+                                                    className={validationErrors.tipoDiseno ? 'input-invalid' : ''}
+                                                    value={stepSpecificData.tipoDiseno || ''} 
+                                                    onChange={(e) => updateStepSpecificField('tipoDiseno', e.target.value)}
+                                                    options={['Diseño nuevo', 'Repetir diseño anterior', 'Actualizar información de diseño anterior']}
+                                                    placeholder="Seleccione..."
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="incluye-logo">
+                                                    ¿Debe incluir logo del médico, clínica o institución? Adjuntar logo
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <FormSelect 
+                                                    id="incluye-logo" 
+                                                    className={validationErrors.incluyeLogo ? 'input-invalid' : ''}
+                                                    value={stepSpecificData.incluyeLogo || ''} 
+                                                    onChange={(e) => updateStepSpecificField('incluyeLogo', e.target.value)}
+                                                    options={['Si', 'No']}
+                                                    placeholder="Seleccione..."
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="otra-informacion">
+                                                    ¿Alguna otra Información que debe llevar el recetario? (Opcional)
+                                                </label>
                                                 <textarea 
-                                                    id="contacto-recetario" 
-                                                    className={validationErrors.informacionContacto ? 'input-invalid' : ''}
-                                                    placeholder="Escriba los teléfonos, horarios de atención, etc."
-                                                    value={stepSpecificData.informacionContacto || ''} 
-                                                    onChange={(e) => updateStepSpecificField('informacionContacto', e.target.value)}
-                                                    rows="3"
+                                                    id="otra-informacion" 
+                                                    placeholder="Escriba cualquier otra información adicional..."
+                                                    value={stepSpecificData.otraInformacion || ''} 
+                                                    onChange={(e) => updateStepSpecificField('otraInformacion', e.target.value)}
+                                                    rows="2"
                                                 ></textarea>
                                             </div>
                                         </>
@@ -1348,16 +1500,123 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                     {requestType === 'Insumos / utilería para activaciones o jornadas médicas' && (
                                         <>
                                             <div className="input-group">
+                                                <label htmlFor="tipo-actividad">
+                                                    Tipo de actividad
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <FormSelect 
+                                                    id="tipo-actividad" 
+                                                    className={validationErrors.tipoActividad ? 'input-invalid' : ''}
+                                                    value={stepSpecificData.tipoActividad || ''} 
+                                                    onChange={(e) => updateStepSpecificField('tipoActividad', e.target.value)}
+                                                    options={['Activación', 'Jornada médica', 'Feria de salud', 'Evento institucional', 'Congreso', 'Otras']}
+                                                    placeholder="Seleccione tipo de actividad..."
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="nombre-actividad">
+                                                    Nombre de la actividad
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="nombre-actividad" 
+                                                    className={validationErrors.nombreActividad ? 'input-invalid' : ''}
+                                                    placeholder="Escriba el nombre de la actividad..."
+                                                    value={stepSpecificData.nombreActividad || ''} 
+                                                    onChange={(e) => updateStepSpecificField('nombreActividad', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="fecha-actividad">
+                                                    Fecha de la actividad
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                                                    Especifique la fecha (d/M/yyyy)
+                                                </span>
+                                                <input 
+                                                    type="date" 
+                                                    id="fecha-actividad" 
+                                                    className={validationErrors.fechaActividad ? 'input-invalid' : ''}
+                                                    value={stepSpecificData.fechaActividad || ''} 
+                                                    onChange={(e) => updateStepSpecificField('fechaActividad', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="horario-actividad">
+                                                    Horario de la actividad
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="horario-actividad" 
+                                                    className={validationErrors.horarioActividad ? 'input-invalid' : ''}
+                                                    placeholder="Ejemplo: 08:00 AM a 04:00 PM..."
+                                                    value={stepSpecificData.horarioActividad || ''} 
+                                                    onChange={(e) => updateStepSpecificField('horarioActividad', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="lugar-actividad">
+                                                    Lugar de la actividad
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="lugar-actividad" 
+                                                    className={validationErrors.lugarActividad ? 'input-invalid' : ''}
+                                                    placeholder="Dirección exacta o establecimiento..."
+                                                    value={stepSpecificData.lugarActividad || ''} 
+                                                    onChange={(e) => updateStepSpecificField('lugarActividad', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="responsable-sitio">
+                                                    Responsable en sitio
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="responsable-sitio" 
+                                                    className={validationErrors.responsableSitio ? 'input-invalid' : ''}
+                                                    placeholder="Nombre y apellido del contacto responsable..."
+                                                    value={stepSpecificData.responsableSitio || ''} 
+                                                    onChange={(e) => updateStepSpecificField('responsableSitio', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="objetivo-actividad">
+                                                    Objetivo de la actividad
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <textarea 
+                                                    id="objetivo-actividad" 
+                                                    className={validationErrors.objetivoActividad ? 'input-invalid' : ''}
+                                                    placeholder="Describa el objetivo de esta actividad..."
+                                                    value={stepSpecificData.objetivoActividad || ''} 
+                                                    onChange={(e) => updateStepSpecificField('objetivoActividad', e.target.value)}
+                                                    rows="3"
+                                                ></textarea>
+                                            </div>
+
+                                            <div className="input-group">
                                                 <label>
-                                                    Insumos solicitados (Marque al menos uno o especifique otro)
+                                                    Insumos o utilería solicitada
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
                                                 <div 
-                                                    className={validationErrors.insumos ? 'input-invalid' : ''}
+                                                    className={validationErrors.insumosSolicitados ? 'input-invalid' : ''}
                                                     style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '6px', padding: '10px', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', border: '1px solid var(--border-color)' }}
                                                 >
-                                                    {['Toldos / Carpas', 'Mesas plegables', 'Sillas plegables', 'Roll-ups / Banners', 'Hieleras / Termos', 'Parlante / Sonido', 'Manteles promocionales'].map(item => {
-                                                        const isChecked = (stepSpecificData.insumos || []).includes(item);
+                                                    {['Banner', 'Trípticos', 'Trípticos Caja de Luz', 'Flyer', 'Mantel', 'Mesa', 'Stand', 'Sillas', 'Carpa', 'Bolsos', 'Lápices', 'Cupones', 'Botes', 'Uniformes', 'Equipo audiovisual', 'Extensión', 'Ruleta', 'Vasos para degustación', 'Productos Dermatológicos', 'Muestras médicas', 'Globos', 'Globos personalizados', 'Portaglobos', 'Otras'].map(item => {
+                                                        const isChecked = (stepSpecificData.insumosSolicitados || []).includes(item);
                                                         return (
                                                             <label key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: '500' }}>
                                                                 <input 
@@ -1371,60 +1630,73 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                         );
                                                     })}
                                                 </div>
-                                                <div style={{ marginTop: '10px' }}>
-                                                    <label htmlFor="insumos-otros" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Otros insumos (Especifique)</label>
-                                                    <input 
-                                                        type="text" 
-                                                        id="insumos-otros"
-                                                        className={validationErrors.insumos ? 'input-invalid' : ''}
-                                                        placeholder="Ejemplo: Trifolios promocionales extra..."
-                                                        value={stepSpecificData.insumosOtros || ''}
-                                                        onChange={(e) => updateStepSpecificField('insumosOtros', e.target.value)}
-                                                    />
-                                                </div>
+                                                {((stepSpecificData.insumosSolicitados || []).includes('Otras') || true) && (
+                                                    <div style={{ marginTop: '10px' }}>
+                                                        <label htmlFor="insumos-otros" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Especifique otros insumos (si aplica)</label>
+                                                        <input 
+                                                            type="text" 
+                                                            id="insumos-otros"
+                                                            placeholder="Ejemplo: Banderines, gorras promocionales..."
+                                                            value={stepSpecificData.insumosOtros || ''}
+                                                            onChange={(e) => updateStepSpecificField('insumosOtros', e.target.value)}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="input-group">
-                                                <label htmlFor="fecha-evento">
-                                                    Fecha del evento / jornada
-                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
-                                                </label>
-                                                <input 
-                                                    type="date" 
-                                                    id="fecha-evento" 
-                                                    className={validationErrors.fechaEvento ? 'input-invalid' : ''}
-                                                    value={stepSpecificData.fechaEvento || ''} 
-                                                    onChange={(e) => updateStepSpecificField('fechaEvento', e.target.value)}
-                                                />
-                                            </div>
-
-                                            <div className="input-group">
-                                                <label htmlFor="ubicacion-evento">
-                                                    Ubicación o dirección exacta de la actividad
-                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
-                                                </label>
-                                                <input 
-                                                    type="text" 
-                                                    id="ubicacion-evento" 
-                                                    className={validationErrors.ubicacionEvento ? 'input-invalid' : ''}
-                                                    placeholder="Especifique dirección, farmacia anfitriona o parqueo..."
-                                                    value={stepSpecificData.ubicacionEvento || ''} 
-                                                    onChange={(e) => updateStepSpecificField('ubicacionEvento', e.target.value)}
-                                                />
-                                            </div>
-
-                                            <div className="input-group">
-                                                <label htmlFor="objetivo-insumos">
-                                                    Objetivo y descripción del uso de los insumos
+                                                <label htmlFor="detalle-insumos">
+                                                    Detalle específico de los insumos solicitados
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
                                                 <textarea 
-                                                    id="objetivo-insumos" 
-                                                    className={validationErrors.objetivoUso ? 'input-invalid' : ''}
-                                                    placeholder="Detalle el tipo de actividad y cómo se usarán los materiales..."
-                                                    value={stepSpecificData.objetivoUso || ''} 
-                                                    onChange={(e) => updateStepSpecificField('objetivoUso', e.target.value)}
+                                                    id="detalle-insumos" 
+                                                    className={validationErrors.detalleInsumos ? 'input-invalid' : ''}
+                                                    placeholder="Describa cantidades o características del material solicitado..."
+                                                    value={stepSpecificData.detalleInsumos || ''} 
+                                                    onChange={(e) => updateStepSpecificField('detalleInsumos', e.target.value)}
                                                     rows="3"
+                                                ></textarea>
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="requiere-montaje">
+                                                    ¿Requiere montaje o instalación?
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <FormSelect 
+                                                    id="requiere-montaje" 
+                                                    className={validationErrors.requiereMontaje ? 'input-invalid' : ''}
+                                                    value={stepSpecificData.requiereMontaje || ''} 
+                                                    onChange={(e) => updateStepSpecificField('requiereMontaje', e.target.value)}
+                                                    options={['Si', 'No', 'No estoy seguro']}
+                                                    placeholder="Seleccione..."
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="requiere-promotora">
+                                                    ¿Requiere promotora?
+                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                </label>
+                                                <FormSelect 
+                                                    id="requiere-promotora" 
+                                                    className={validationErrors.requierePromotora ? 'input-invalid' : ''}
+                                                    value={stepSpecificData.requierePromotora || ''} 
+                                                    onChange={(e) => updateStepSpecificField('requierePromotora', e.target.value)}
+                                                    options={['Si', 'No']}
+                                                    placeholder="Seleccione..."
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="restricciones-permisos">¿Hay restricciones del lugar o permisos requeridos?</label>
+                                                <textarea 
+                                                    id="restricciones-permisos" 
+                                                    placeholder="Indique si hay horarios restringidos, permisos del centro comercial, etc..."
+                                                    value={stepSpecificData.restriccionesPermisos || ''} 
+                                                    onChange={(e) => updateStepSpecificField('restriccionesPermisos', e.target.value)}
+                                                    rows="2"
                                                 ></textarea>
                                             </div>
                                         </>
@@ -1433,61 +1705,72 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                     {requestType === 'Rotulación Externa' && (
                                         <>
                                             <div className="input-group">
-                                                <label htmlFor="tipo-rotulacion-externa">
-                                                    Tipo de rotulación externa
-                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
-                                                </label>
-                                                <FormSelect 
-                                                    id="tipo-rotulacion-externa" 
-                                                    className={validationErrors.tipoRotulacionExterna ? 'input-invalid' : ''}
-                                                    value={stepSpecificData.tipoRotulacionExterna || ''} 
-                                                    onChange={(e) => updateStepSpecificField('tipoRotulacionExterna', e.target.value)}
-                                                    options={['Fachada principal', 'Rótulo luminoso', 'Rótulo de bandera / doble cara', 'Pintura / Decoración exterior', 'Valla publicitaria', 'Otras']}
-                                                    placeholder="Seleccione tipo de rotulación externa..."
-                                                />
-                                            </div>
-
-                                            <div className="input-group">
-                                                <label htmlFor="medidas-externa">
-                                                    Medidas aproximadas del espacio exterior (Ancho x Alto en metros)
+                                                <label htmlFor="ubicacion-instalacion">
+                                                    Ubicación donde se instalará la rotulación
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
                                                 <input 
                                                     type="text" 
-                                                    id="medidas-externa" 
-                                                    className={validationErrors.medidas ? 'input-invalid' : ''}
-                                                    placeholder="Ejemplo: 4.5 x 2.2 metros"
-                                                    value={stepSpecificData.medidas || ''} 
-                                                    onChange={(e) => updateStepSpecificField('medidas', e.target.value)}
+                                                    id="ubicacion-instalacion" 
+                                                    className={validationErrors.ubicacionInstalacion ? 'input-invalid' : ''}
+                                                    placeholder="Ejemplo: Entrada principal, ventanal lateral, etc..."
+                                                    value={stepSpecificData.ubicacionInstalacion || ''} 
+                                                    onChange={(e) => updateStepSpecificField('ubicacionInstalacion', e.target.value)}
                                                 />
                                             </div>
 
                                             <div className="input-group">
-                                                <label htmlFor="indicaciones-externa">
-                                                    Indicaciones de diseño, textos y colores
-                                                    <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
+                                                <label htmlFor="tipo-reparacion">
+                                                    Reparación (Opcional)
                                                 </label>
-                                                <textarea 
-                                                    id="indicaciones-externa" 
-                                                    className={validationErrors.indicacionesDiseno ? 'input-invalid' : ''}
-                                                    placeholder="Detalle qué textos debe incluir, logotipos a destacar y colores sugeridos..."
-                                                    value={stepSpecificData.indicacionesDiseno || ''} 
-                                                    onChange={(e) => updateStepSpecificField('indicacionesDiseno', e.target.value)}
-                                                    rows="3"
-                                                ></textarea>
+                                                <FormSelect 
+                                                    id="tipo-reparacion" 
+                                                    value={stepSpecificData.tipoReparacion || ''} 
+                                                    onChange={(e) => updateStepSpecificField('tipoReparacion', e.target.value)}
+                                                    options={['Marco Autoservicio', 'Sticker', 'Letras Encajueladas', 'Caja de Luz', 'Microperforado', 'Cambio de lona']}
+                                                    placeholder="Seleccione reparación..."
+                                                />
                                             </div>
 
                                             <div className="input-group">
-                                                <label htmlFor="estado-fachada">
-                                                    Estado actual de la fachada (rótulo anterior, altura, etc.)
+                                                <label htmlFor="medidas-rotulo">
+                                                    Medidas exactas del espacio o rótulo (Opcional)
+                                                </label>
+                                                <input 
+                                                    type="text" 
+                                                    id="medidas-rotulo" 
+                                                    placeholder="Ejemplo: alto x ancho en cm o metros..."
+                                                    value={stepSpecificData.medidasRotulo || ''} 
+                                                    onChange={(e) => updateStepSpecificField('medidasRotulo', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="fecha-instalacion">
+                                                    Fecha requerida para instalación
                                                     <span style={{ color: 'var(--color-danger)', marginLeft: '4px' }}>*</span>
                                                 </label>
+                                                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                                                    Especifique la fecha (d/M/yyyy)
+                                                </span>
+                                                <input 
+                                                    type="date" 
+                                                    id="fecha-instalacion" 
+                                                    className={validationErrors.fechaInstalacion ? 'input-invalid' : ''}
+                                                    value={stepSpecificData.fechaInstalacion || ''} 
+                                                    onChange={(e) => updateStepSpecificField('fechaInstalacion', e.target.value)}
+                                                />
+                                            </div>
+
+                                            <div className="input-group">
+                                                <label htmlFor="restricciones-externa">
+                                                    ¿Existe alguna restricción de instalación, permisos o lineamientos del lugar? (Opcional)
+                                                </label>
                                                 <textarea 
-                                                    id="estado-fachada" 
-                                                    className={validationErrors.estadoFachada ? 'input-invalid' : ''}
-                                                    placeholder="Describa si requiere desmontar un rótulo anterior, altura a la que va instalado, etc..."
-                                                    value={stepSpecificData.estadoFachada || ''} 
-                                                    onChange={(e) => updateStepSpecificField('estadoFachada', e.target.value)}
+                                                    id="restricciones-externa" 
+                                                    placeholder="Indique si hay restricciones..."
+                                                    value={stepSpecificData.restriccionesPermisosExterna || ''} 
+                                                    onChange={(e) => updateStepSpecificField('restriccionesPermisosExterna', e.target.value)}
                                                     rows="3"
                                                 ></textarea>
                                             </div>
@@ -1495,65 +1778,69 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                     )}
 
                                     {/* Zona de Carga de Archivos */}
-                                    <div className="input-group" style={{ marginTop: '20px' }}>
-                                        <label>Adjuntar logos, imágenes o archivos necesarios (Opcional)</label>
-                                        <div 
-                                            className="wizard-file-dropzone"
-                                            onDragOver={handleDragOver}
-                                            onDrop={handleDrop}
-                                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                                        >
-                                            <i className="fa-solid fa-cloud-arrow-up"></i>
-                                            <h5>Arrastra y suelta tus archivos aquí</h5>
-                                            <p>o haz clic para buscar en tu dispositivo</p>
-                                            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                                {requestType === 'Recetarios Médicos' 
-                                                    ? 'Límite: 1 archivo, Máx 5MB' 
-                                                    : 'Límite: 3 archivos, Máx 5MB por archivo'}
-                                            </p>
-                                        </div>
-                                        <input 
-                                            type="file"
-                                            ref={fileInputRef}
-                                            onChange={handleFileSelect}
-                                            multiple={requestType !== 'Recetarios Médicos'}
-                                            style={{ display: 'none' }}
-                                        />
-                                        
-                                        {selectedFiles.length > 0 && (
-                                            <div className="wizard-file-list">
-                                                {selectedFiles.map((file, idx) => (
-                                                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                                                        <div className="wizard-file-item">
-                                                            <div className="wizard-file-info">
-                                                                <i className={getFileIcon(file.name)}></i>
-                                                                <div className="wizard-file-meta">
-                                                                    <span className="wizard-file-name">{file.name}</span>
-                                                                    <span className="wizard-file-size">{formatBytes(file.size)}</span>
-                                                                </div>
-                                                            </div>
-                                                            <button 
-                                                                type="button" 
-                                                                className="btn-remove-file"
-                                                                onClick={() => removeFile(idx)}
-                                                                disabled={isSubmitting}
-                                                            >
-                                                                <i className="fa-solid fa-trash-can"></i>
-                                                            </button>
-                                                        </div>
-                                                        {fileUploadProgresses[file.name] !== undefined && (
-                                                            <div className="file-upload-progress-container">
-                                                                <div 
-                                                                    className="file-upload-progress-bar" 
-                                                                    style={{ width: `${fileUploadProgresses[file.name]}%` }}
-                                                                ></div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
+                                    {requestType !== 'Insumos / utilería para activaciones o jornadas médicas' && 
+                                     requestType !== 'Rotulación Interna' && 
+                                     requestType !== 'Material para impresión' && (
+                                        <div className="input-group" style={{ marginTop: '20px' }}>
+                                            <label>Adjuntar logos, imágenes o archivos necesarios (Opcional)</label>
+                                            <div 
+                                                className="wizard-file-dropzone"
+                                                onDragOver={handleDragOver}
+                                                onDrop={handleDrop}
+                                                onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                                            >
+                                                <i className="fa-solid fa-cloud-arrow-up"></i>
+                                                <h5>Arrastra y suelta tus archivos aquí</h5>
+                                                <p>o haz clic para buscar en tu dispositivo</p>
+                                                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                                    {requestType === 'Recetarios Médicos' 
+                                                        ? 'Límite: 1 archivo, Máx 10MB' 
+                                                        : 'Límite: 3 archivos, Máx 5MB por archivo'}
+                                                </p>
                                             </div>
-                                        )}
-                                    </div>
+                                            <input 
+                                                type="file"
+                                                ref={fileInputRef}
+                                                onChange={handleFileSelect}
+                                                multiple={requestType !== 'Recetarios Médicos'}
+                                                style={{ display: 'none' }}
+                                            />
+                                            
+                                            {selectedFiles.length > 0 && (
+                                                <div className="wizard-file-list">
+                                                    {selectedFiles.map((file, idx) => (
+                                                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                                                            <div className="wizard-file-item">
+                                                                <div className="wizard-file-info">
+                                                                    <i className={getFileIcon(file.name)}></i>
+                                                                    <div className="wizard-file-meta">
+                                                                        <span className="wizard-file-name">{file.name}</span>
+                                                                        <span className="wizard-file-size">{formatBytes(file.size)}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <button 
+                                                                    type="button" 
+                                                                    className="btn-remove-file"
+                                                                    onClick={() => removeFile(idx)}
+                                                                    disabled={isSubmitting}
+                                                                >
+                                                                    <i className="fa-solid fa-trash-can"></i>
+                                                                </button>
+                                                            </div>
+                                                            {fileUploadProgresses[file.name] !== undefined && (
+                                                                <div className="file-upload-progress-container">
+                                                                    <div 
+                                                                        className="file-upload-progress-bar" 
+                                                                        style={{ width: `${fileUploadProgresses[file.name]}%` }}
+                                                                    ></div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Botones de navegación del paso 2 */}
                                     <div className="flex-row justify-between" style={{ marginTop: '24px' }}>
@@ -1739,16 +2026,35 @@ function renderStructuredDetails(ticket) {
             ladosImpresion: 'Lados de Impresión',
             textoMaterial: 'Texto del Material',
             aprobadorArte: 'Aprobador del Arte',
-            tipoRecetario: 'Tipo de Recetario',
-            nombreMedico: 'Nombre y Especialidad del Médico',
-            codigoColegiado: 'Código de Colegiado / Registro',
-            ubicacionClinica: 'Ubicación / Clínica',
-            informacionContacto: 'Información de Contacto',
-            insumos: 'Insumos Solicitados',
-            insumosOtros: 'Otros Insumos',
-            fechaEvento: 'Fecha del Evento',
-            ubicacionEvento: 'Ubicación de la Actividad',
-            objetivoUso: 'Objetivo del Evento',
+            nombreMedico: 'Nombre del Médico',
+            especialidadMedica: 'Especialidad Médica',
+            nombreClinica: 'Nombre de la Clínica/Hospital/Consultorio',
+            direccionRecetario: 'Dirección del Recetario',
+            telefonoConsultorio: 'Contacto del Consultorio',
+            horarioAtencion: 'Horario de Atención',
+            cantidadRecetarios: 'Cantidad de Recetarios',
+            tipoDiseno: 'Tipo de Diseño',
+            incluyeLogo: '¿Debe Incluir Logo?',
+            otraInformacion: 'Información Adicional',
+            tipoActividad: 'Tipo de Actividad',
+            nombreActividad: 'Nombre de la Actividad',
+            fechaActividad: 'Fecha de la Actividad',
+            horarioActividad: 'Horario de la Actividad',
+            lugarActividad: 'Lugar de la Actividad',
+            responsableSitio: 'Responsable en Sitio',
+            objetivoActividad: 'Objetivo de la Actividad',
+            insumosSolicitados: 'Insumos / Utilería Solicitada',
+            insumosOtros: 'Otros Insumos Especificados',
+            detalleInsumos: 'Detalle de Insumos',
+            requiereMontaje: '¿Requiere Montaje/Instalación?',
+            requierePromotora: '¿Requiere Promotora?',
+            restriccionesPermisos: 'Restricciones / Permisos',
+            ubicacionInstalacion: 'Ubicación de Instalación',
+            tipoReparacion: 'Reparación / Tipo de Rótulo',
+            medidasRotulo: 'Medidas de Espacio o Rótulo',
+            fechaInstalacion: 'Fecha Requerida de Instalación',
+            restriccionesPermisosExterna: 'Restricciones o Permisos',
+            tipoTrabajoExterna: 'Tipo de Trabajo Externo',
             tipoRotulacionExterna: 'Tipo de Rotulación Externa',
             estadoFachada: 'Estado de la Fachada'
         };
