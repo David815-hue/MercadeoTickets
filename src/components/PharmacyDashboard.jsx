@@ -263,21 +263,21 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         
         let defaultData = { _type: requestType };
         if (requestType === 'Artes Digital') {
-            defaultData.tipoMaterial = 'Post para redes sociales';
-            defaultData.medidas = 'Estándar';
+            defaultData.tipoMaterial = '';
+            defaultData.medidas = '';
             defaultData.medidasEspecificas = '';
             defaultData.informacionMaterial = '';
             defaultData.incluirTelefono = '';
         } else if (requestType === 'Rotulación Interna') {
-            defaultData.tipoRotulacion = 'Rótulo Prefabricado';
+            defaultData.tipoRotulacion = '';
             defaultData.medidas = '';
             defaultData.detalleTexto = '';
         } else if (requestType === 'Material para impresión') {
-            defaultData.tipoMaterialImpreso = 'Volante';
+            defaultData.tipoMaterialImpreso = '';
             defaultData.tamanoRequerido = '';
-            defaultData.orientacion = 'Vertical';
+            defaultData.orientacion = '';
             defaultData.cantidadRequerida = '';
-            defaultData.ladosImpresion = 'Una cara';
+            defaultData.ladosImpresion = '';
             defaultData.textoMaterial = '';
             defaultData.aprobadorArte = '';
         } else if (requestType === 'Recetarios Médicos') {
