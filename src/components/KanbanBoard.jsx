@@ -3,6 +3,7 @@ import { draggable, dropTargetForElements, monitorForElements } from '@atlaskit/
 import { setCustomNativeDragPreview } from '@atlaskit/pragmatic-drag-and-drop/element/set-custom-native-drag-preview';
 import { toast } from 'sonner';
 import SlaProgressBar from './SlaProgressBar';
+import { getPharmacyDisplayName } from '../utils/pharmacyMap';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -51,8 +52,9 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
     const [isDragging, setIsDragging] = useState(false);
     const [justDropped, setJustDropped] = useState(false);
 
-    const [avatarFrom, avatarTo] = getAvatarColors(ticket.pharmacy_name);
-    const initials = getInitials(ticket.pharmacy_name);
+    const displayName = getPharmacyDisplayName(ticket.pharmacy_name);
+    const [avatarFrom, avatarTo] = getAvatarColors(displayName);
+    const initials = getInitials(displayName);
     const ticketLabel = ticket.ticket_number ? `PF-${ticket.ticket_number}` : `#${ticket.id.substring(0, 6).toUpperCase()}`;
 
     const fecha = new Date(ticket.created_at).toLocaleDateString('es-ES', {
@@ -107,7 +109,7 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
 
                         const nameEl = document.createElement('div');
                         nameEl.style.cssText = `color: white; font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;`;
-                        nameEl.textContent = ticket.pharmacy_name || 'Farmacia';
+                        nameEl.textContent = displayName || 'Farmacia';
 
                         const idEl = document.createElement('div');
                         idEl.style.cssText = `color: ${avatarFrom}; font-size: 0.72rem; font-weight: 700; margin-top: 2px;`;
@@ -122,7 +124,7 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
                 });
             }
         });
-    }, [ticket.id, ticket.status, avatarFrom, avatarTo, initials, ticket.pharmacy_name, ticketLabel]);
+    }, [ticket.id, ticket.status, avatarFrom, avatarTo, initials, displayName, ticketLabel]);
 
     return (
         <div
@@ -160,12 +162,12 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
                     <div
                         className="kanban-avatar"
                         style={{ background: `linear-gradient(135deg, ${avatarFrom}, ${avatarTo})` }}
-                        title={ticket.pharmacy_name}
+                        title={displayName}
                     >
                         {initials}
                     </div>
                     <div className="kanban-pharmacy-info">
-                        <span className="kanban-pharmacy-name">{ticket.pharmacy_name}</span>
+                        <span className="kanban-pharmacy-name">{displayName}</span>
                         {isUnread && (
                             <span className="kanban-unread-dot"></span>
                         )}

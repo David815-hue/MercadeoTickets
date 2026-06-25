@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import FormSelect from './FormSelect';
 import SlaProgressBar from './SlaProgressBar';
 import AuditLogModal from './AuditLogModal';
+import { getPharmacyDisplayName } from '../utils/pharmacyMap';
 
 
 
@@ -549,7 +550,9 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     // Filtrado local
     const filteredTickets = tickets.filter(ticket => {
         const query = search.toLowerCase().trim();
+        const displayName = getPharmacyDisplayName(ticket.pharmacy_name).toLowerCase();
         const matchesSearch = ticket.pharmacy_name.toLowerCase().includes(query) ||
+                              displayName.includes(query) ||
                               ticket.description.toLowerCase().includes(query) ||
                               ticket.id.toLowerCase().includes(query) ||
                               (ticket.ticket_number && ticket.ticket_number.toString().includes(query));
@@ -947,7 +950,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                     
                                                     <div style={{ fontSize: '0.82rem', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                         <i className="fa-solid fa-hospital" style={{ fontSize: '0.72rem', color: 'var(--color-primary)' }}></i>
-                                                        {ticket.pharmacy_name}
+                                                        {getPharmacyDisplayName(ticket.pharmacy_name)}
                                                     </div>
 
                                                     <span className="card-ticket-desc-snippet">
@@ -1009,7 +1012,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                     <h3>{activeTicket.ticket_number ? `Ticket TK-${activeTicket.ticket_number}` : `Ticket #${activeTicket.id}`}</h3>
                                                     <div className="workspace-details-header-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                                                         <span><i className="fa-regular fa-clock"></i> {new Date(activeTicket.created_at).toLocaleString('es-ES')}</span>
-                                                        <span style={{ fontWeight: '600' }}><i className="fa-solid fa-hospital" style={{ color: 'var(--color-primary)' }}></i> {activeTicket.pharmacy_name}</span>
+                                                        <span style={{ fontWeight: '600' }}><i className="fa-solid fa-hospital" style={{ color: 'var(--color-primary)' }}></i> {getPharmacyDisplayName(activeTicket.pharmacy_name)}</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex-row gap-12 align-center" style={{ flexShrink: 0 }}>
@@ -1183,21 +1186,23 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                      }}
                                                  >
                                                      <i className="fa-solid fa-hospital" style={{ color: 'var(--color-primary)', marginRight: '6px' }}></i>
-                                                     {ticket.pharmacy_name}
+                                                     {getPharmacyDisplayName(ticket.pharmacy_name)}
                                                  </span>
                                                  {hasUnread && <span className="badge-unread" style={{ flexShrink: 0 }}>Nuevo Mensaje</span>}
-                                                 {ticket.priority && (
-                                                     <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase().replace(' ', '-')}`} style={{ flexShrink: 0 }}>
-                                                         <i className="fa-solid fa-circle-exclamation"></i>
-                                                         {ticket.priority}
-                                                     </span>
-                                                 )}
-                                                 {ticket.request_type && (
-                                                     <span className="type-badge-pill" style={{ flexShrink: 0 }}>
-                                                         <i className={getRequestTypeIcon(ticket.request_type)}></i>
-                                                         {ticket.request_type}
-                                                     </span>
-                                                 )}
+                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
+                                                      {ticket.priority && (
+                                                          <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase().replace(' ', '-')}`} style={{ width: 'fit-content', margin: 0 }}>
+                                                              <i className="fa-solid fa-circle-exclamation"></i>
+                                                              {ticket.priority}
+                                                          </span>
+                                                      )}
+                                                      {ticket.request_type && (
+                                                          <span className="type-badge-pill" style={{ width: 'fit-content', margin: 0 }}>
+                                                              <i className={getRequestTypeIcon(ticket.request_type)}></i>
+                                                              {ticket.request_type}
+                                                          </span>
+                                                      )}
+                                                  </div>
                                                   <span 
                                                       className="accordion-ticket-desc" 
                                                       style={{ 
@@ -1529,7 +1534,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                             <div className="detail-meta-grid">
                                 <div className="detail-meta-item">
                                     <label>Farmacia Solicitante</label>
-                                    <span>{selectedDetailTicket.pharmacy_name}</span>
+                                    <span>{getPharmacyDisplayName(selectedDetailTicket.pharmacy_name)}</span>
                                 </div>
                                 <div className="detail-meta-item">
                                     <label>Fecha de Emisión</label>

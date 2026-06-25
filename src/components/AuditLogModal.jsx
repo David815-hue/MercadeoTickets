@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { getPharmacyDisplayName } from '../utils/pharmacyMap';
 
 export default function AuditLogModal({ isOpen, onClose, ticket }) {
     const [history, setHistory] = useState([]);
@@ -71,7 +72,7 @@ export default function AuditLogModal({ isOpen, onClose, ticket }) {
                         <div>
                             <h2>Historial de Cambios</h2>
                             <p className="modal-subtitle">
-                                Ticket {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}`} - {ticket.pharmacy_name}
+                                Ticket {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}`} - {getPharmacyDisplayName(ticket.pharmacy_name)}
                             </p>
                         </div>
                     </div>
@@ -96,7 +97,7 @@ export default function AuditLogModal({ isOpen, onClose, ticket }) {
                                 <div className="timeline-panel">
                                     <div className="timeline-header">
                                         <span className="timeline-user">
-                                            <i className="fa-solid fa-store"></i> {ticket.pharmacy_name}
+                                            <i className="fa-solid fa-store"></i> {getPharmacyDisplayName(ticket.pharmacy_name)}
                                         </span>
                                         <span className="timeline-time">
                                             {formatDateTime(ticket.created_at)}

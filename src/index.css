@@ -3573,9 +3573,389 @@ button:focus-visible,
     color: #ffffff !important;
 }
 
+/* ====================================================
+   SISTEMA DE ENTREGABLES OFICIALES
+   ==================================================== */
 
+.chat-split-wrapper {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
+.chat-split-wrapper .chat-container {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+}
 
+.chat-split-wrapper.split-active {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    height: 100%;
+}
 
+.chat-split-wrapper.split-active .chat-container {
+    height: 100%;
+    min-height: 0;
+}
 
+.modal-content-chat {
+    transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1), width 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
 
+.modal-content-chat--wide {
+    max-width: 1300px !important;
+    width: 95% !important;
+}
+
+.deliverables-panel {
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    padding: 24px;
+    border-left: 1px solid var(--border-color);
+    min-height: 0;
+}
+
+.deliverables-header {
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.deliverables-header h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+}
+
+.deliverables-subtitle {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Formulario */
+.deliverables-upload-form {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 18px;
+}
+
+.upload-file-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 10px;
+    border: 2px dashed rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.01);
+    transition: all 0.2s ease;
+    color: var(--text-secondary);
+}
+
+.upload-file-label:hover {
+    border-color: var(--color-primary);
+    background: rgba(99, 102, 241, 0.04);
+    color: var(--text-main);
+}
+
+.upload-file-label i {
+    font-size: 1.4rem;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+}
+
+.upload-file-label span {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Lista */
+.deliverables-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-right: 4px;
+}
+
+.deliverables-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 40px 20px;
+}
+
+/* Tarjeta Entregable */
+.deliverable-card {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.deliverable-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: var(--shadow-card);
+}
+
+.deliverable-card.status-aprobado {
+    border-left: 4px solid #10b981;
+}
+
+.deliverable-card.status-pendiente {
+    border-left: 4px solid #f59e0b;
+}
+
+.deliverable-card.status-con_correcciones {
+    border-left: 4px solid #ef4444;
+}
+
+.deliverable-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.version-tag {
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--color-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+/* Previews */
+.deliverable-preview-wrap {
+    position: relative;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    background: #09090b;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    margin-bottom: 12px;
+}
+
+.deliverable-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.deliverable-preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    gap: 6px;
+    backdrop-filter: blur(2px);
+}
+
+.deliverable-preview-wrap:hover .deliverable-preview-overlay {
+    opacity: 1;
+}
+
+.deliverable-file-icon-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    padding: 24px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    gap: 8px;
+}
+
+.file-icon-big {
+    font-size: 2.2rem;
+    color: #ef4444;
+}
+
+.file-icon-name {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: center;
+    word-break: break-all;
+    max-width: 100%;
+}
+
+.deliverable-card-body {
+    margin-bottom: 12px;
+}
+
+.deliverable-filename {
+    margin: 0 0 6px 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.deliverable-note {
+    margin: 0 0 8px 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.deliverable-date {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.deliverable-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.btn-deliverables-toggle:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+}
+
+.btn-deliverables-toggle.active:hover {
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+}
+
+.deliverable-card.status-aprobado .badge {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.deliverable-card.status-pendiente .badge {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.deliverable-card.status-con_correcciones .badge {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* Animaciones */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slide-down {
+    animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Reducir tamaño de controles de Estado en cabecera de chat */
+.chat-header .custom-select-trigger {
+    padding: 4px 10px !important;
+    font-size: 0.72rem !important;
+    border-radius: 16px !important;
+}
+
+.chat-header .custom-select-trigger .status-dot {
+    width: 6px !important;
+    height: 6px !important;
+}
+
+.chat-header .custom-select-trigger .chevron {
+    font-size: 0.7rem !important;
+}
+
+.chat-header .admin-status-control-clean span {
+    font-size: 0.72rem !important;
+}
+
+.chat-header .custom-select-options {
+    min-width: 140px !important;
+}
+
+.chat-header .custom-select-option {
+    font-size: 0.72rem !important;
+    padding: 6px 10px !important;
+}
+
+.chat-header .custom-select-option .status-dot {
+    width: 6px !important;
+    height: 6px !important;
+}
+
+/* Reducir tamaño de controles de Estado y Prioridad en la fila de tickets */
+.action-bar-controls .custom-select-trigger {
+    padding: 4px 10px !important;
+    font-size: 0.72rem !important;
+    border-radius: 16px !important;
+    height: auto !important;
+}
+
+.action-bar-controls .custom-select-trigger .status-dot {
+    width: 6px !important;
+    height: 6px !important;
+}
+
+.action-bar-controls .custom-select-trigger .chevron {
+    font-size: 0.7rem !important;
+}
+
+.action-bar-controls .status-selector-label {
+    font-size: 0.72rem !important;
+}
+
+.action-bar-controls .custom-select-options {
+    min-width: 130px !important;
+}
+
+.action-bar-controls .custom-select-option {
+    font-size: 0.72rem !important;
+    padding: 6px 10px !important;
+}
+
+.action-bar-controls .custom-select-option .status-dot {
+    width: 6px !important;
+    height: 6px !important;
+}

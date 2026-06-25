@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import FormSelect from './FormSelect';
 import SlaProgressBar from './SlaProgressBar';
 import AuditLogModal from './AuditLogModal';
+import { getPharmacyDisplayName } from '../utils/pharmacyMap';
 
 const CATEGORY_DURATIONS = {
     'Artes Digital': '5 días',
@@ -173,8 +174,8 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
             }, (payload) => {
                 const newMsg = payload.new;
                 
-                // Si el mensaje viene del admin o del sistema (ej: cambios de estado)
-                if (newMsg.sender_id !== currentUser.id) {
+                // Si el mensaje no viene de la propia farmacia y no es del sistema
+                if (newMsg.sender_id !== currentUser.id && newMsg.sender_name !== 'Sistema') {
                     // Si el chat no está abierto actualmente con este ticket
                     if (!isChatModalOpen || !activeTicket || activeTicket.id !== newMsg.ticket_id) {
                         setUnreadTicketIds(prev => {
@@ -678,7 +679,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                         {(currentUser.username || 'F').charAt(0).toUpperCase()}
                     </div>
                     <div className="header-user-info">
-                        <span className="header-user-name">{currentUser.username}</span>
+                        <span className="header-user-name">{getPharmacyDisplayName(currentUser.username)}</span>
                         <span className="header-user-role">
                             <i className="fa-solid fa-hospital" style={{ marginRight: '4px', fontSize: '0.65rem', color: '#818cf8' }}></i>
                             Farmacia
@@ -805,18 +806,20 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                      {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}
                                                  </span>
                                                  {hasUnread && <span className="badge-unread" style={{ flexShrink: 0 }}>Nuevo Mensaje</span>}
-                                                 {ticket.priority && ticket.priority !== 'Sin prioridad' && (
-                                                     <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase()}`} style={{ flexShrink: 0 }}>
-                                                         <i className="fa-solid fa-circle-exclamation"></i>
-                                                         {ticket.priority}
-                                                     </span>
-                                                 )}
-                                                 {ticket.request_type && (
-                                                     <span className="type-badge-pill" style={{ flexShrink: 0 }}>
-                                                         <i className={getRequestTypeIcon(ticket.request_type)}></i>
-                                                         {ticket.request_type}
-                                                     </span>
-                                                 )}
+                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
+                                                     {ticket.priority && ticket.priority !== 'Sin prioridad' && (
+                                                         <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase()}`} style={{ width: 'fit-content', margin: 0 }}>
+                                                             <i className="fa-solid fa-circle-exclamation"></i>
+                                                             {ticket.priority}
+                                                         </span>
+                                                     )}
+                                                     {ticket.request_type && (
+                                                         <span className="type-badge-pill" style={{ width: 'fit-content', margin: 0 }}>
+                                                             <i className={getRequestTypeIcon(ticket.request_type)}></i>
+                                                             {ticket.request_type}
+                                                         </span>
+                                                     )}
+                                                 </div>
                                                  <span 
                                                      className="accordion-ticket-desc" 
                                                      style={{ 
