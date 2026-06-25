@@ -3075,6 +3075,45 @@ button:focus-visible,
 /* ====================================================
    ESTILOS DE BARRA DE PROGRESO SLA
    ==================================================== */
+/* ── Modo compacto para tarjetas kanban ── */
+.sla-compact-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.sla-compact-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.sla-compact-chip i {
+    font-size: 0.6rem;
+}
+
+.sla-compact-chip span {
+    line-height: 1;
+}
+
+.sla-compact-pct {
+    margin-left: auto;
+    font-size: 0.62rem;
+    font-weight: 700;
+    opacity: 0.85;
+}
+
+/* Colores del chip según estado */
+.sla-ok       .sla-compact-chip { color: #34d399; }
+.sla-warning  .sla-compact-chip { color: #fbbf24; }
+.sla-danger   .sla-compact-chip { color: #f87171; animation: pulse-red 2s infinite; }
+.sla-completed .sla-compact-chip { color: #94a3b8; }
+
+/* Modo detallado (panel del ticket) */
 .sla-progress-container {
     display: flex;
     flex-direction: column;
@@ -3083,13 +3122,6 @@ button:focus-visible,
     transition: var(--transition-smooth);
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--border-color);
-}
-
-.sla-progress-container.compact {
-    padding: 6px 8px;
-    margin-top: 6px;
-    border: none;
-    background: rgba(255, 255, 255, 0.015);
 }
 
 .sla-progress-container.detailed {
@@ -3128,6 +3160,10 @@ button:focus-visible,
     border-radius: 4px;
     overflow: hidden;
     position: relative;
+}
+
+.sla-compact-wrap .sla-track {
+    height: 3px;
 }
 
 .sla-progress-container.compact .sla-track {

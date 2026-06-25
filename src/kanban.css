@@ -144,24 +144,24 @@
 .kanban-card {
     background: var(--bg-card);
     border: 1px solid rgba(99, 102, 241, 0.08);
-    border-radius: 12px;
-    padding: 14px;
+    border-radius: 10px;
+    padding: 11px 12px;
     cursor: grab;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.01);
+    gap: 7px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     position: relative;
     user-select: none;
     backdrop-filter: blur(8px);
 }
 
 .kanban-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(99, 102, 241, 0.32);
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.28);
     background: var(--bg-card-hover);
-    box-shadow: 0 12px 24px rgba(99, 102, 241, 0.06), 0 4px 8px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.07), 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .kanban-card:active {
@@ -177,66 +177,88 @@
     transform: scale(0.96);
 }
 
-/* Cabecera de la Tarjeta */
+/* ── Cabecera compacta de la Tarjeta ── */
 .kanban-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 6px;
 }
 
 .kanban-card-id {
     font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 0.72rem;
+    font-weight: 700;
+    font-size: 0.68rem;
     color: var(--border-focus);
-    background: rgba(99, 102, 241, 0.05);
-    border: 1px solid rgba(99, 102, 241, 0.12);
-    padding: 1.5px 6px;
-    border-radius: 6px;
-    letter-spacing: 0.2px;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+}
+
+.kanban-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+/* Dot de prioridad */
+.kanban-priority-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.kanban-priority-dot.alta    { background: #ef4444; box-shadow: 0 0 4px rgba(239,68,68,0.5); }
+.kanban-priority-dot.media   { background: #f59e0b; box-shadow: 0 0 4px rgba(245,158,11,0.4); }
+.kanban-priority-dot.baja    { background: #10b981; }
+.kanban-priority-dot.urgente { background: #dc2626; box-shadow: 0 0 6px rgba(220,38,38,0.6); animation: pulse-dot 1s ease-in-out infinite; }
+
+/* Icono de tipo de solicitud */
+.kanban-type-icon {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    opacity: 0.75;
 }
 
 .kanban-card-date {
-    font-size: 0.72rem;
+    font-size: 0.65rem;
     color: var(--text-secondary);
-    opacity: 0.85;
+    opacity: 0.6;
 }
 
-/* Fila de farmacia con avatar */
+/* ── Fila de farmacia con avatar ── */
 .kanban-pharmacy-row {
     display: flex;
     align-items: center;
-    gap: 9px;
-    margin-bottom: 2px;
+    gap: 7px;
 }
 
 .kanban-avatar {
-    width: 30px;
-    height: 30px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
     font-weight: 800;
-    font-size: 0.68rem;
+    font-size: 0.6rem;
     letter-spacing: 0.5px;
     flex-shrink: 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
 }
 
 .kanban-pharmacy-info {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
     flex: 1;
 }
 
 .kanban-pharmacy-name {
-    font-size: 0.83rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 600;
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
@@ -245,8 +267,8 @@
 }
 
 .kanban-unread-dot {
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: var(--color-danger);
     flex-shrink: 0;
@@ -259,15 +281,16 @@
 }
 
 .kanban-card-desc {
-    font-size: 0.76rem;
+    font-size: 0.72rem;
     color: var(--text-secondary);
-    line-height: 1.45;
+    line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    opacity: 0.9;
+    opacity: 0.8;
+    margin: 0;
 }
 
 /* Estado vacío de columna */

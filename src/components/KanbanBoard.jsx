@@ -126,56 +126,58 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
         });
     }, [ticket.id, ticket.status, avatarFrom, avatarTo, initials, displayName, ticketLabel]);
 
+    const priorityDotClass = ticket.priority
+        ? ticket.priority.toLowerCase().replace(/\s+/g, '-')
+        : null;
+
     return (
         <div
             ref={cardRef}
             className={`kanban-card ${isDragging ? 'dragging' : ''} ${justDropped ? 'card-drop-anim' : ''}`}
             onClick={() => onOpenDetails(ticket)}
         >
-            {/* Header: ID ticket + fecha */}
+            {/* Header: ID + dot prioridad + icono tipo + fecha — todo en una línea */}
             <div className="kanban-card-header">
                 <span className="kanban-card-id">{ticketLabel}</span>
-                <span className="kanban-card-date">{fecha}</span>
-            </div>
-
-            {/* Badges de prioridad y tipo */}
-            {(ticket.priority || ticket.request_type) && (
-                <div className="ticket-badge-wrap" style={{ marginTop: '2px', marginBottom: '4px' }}>
+                <div className="kanban-card-meta">
                     {ticket.priority && (
-                        <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase().replace(' ', '-')}`}>
-                            <i className="fa-solid fa-circle-exclamation"></i>
-                            {ticket.priority}
-                        </span>
+                        <span
+                            className={`kanban-priority-dot ${priorityDotClass}`}
+                            title={`Prioridad: ${ticket.priority}`}
+                        />
                     )}
                     {ticket.request_type && (
-                        <span className="type-badge-pill">
-                            <i className={getRequestTypeIcon(ticket.request_type)}></i>
-                            {ticket.request_type}
-                        </span>
+                        <i
+                            className={`kanban-type-icon ${getRequestTypeIcon(ticket.request_type)}`}
+                            title={ticket.request_type}
+                        />
+                    )}
+                    <span className="kanban-card-date">{fecha}</span>
+                </div>
+            </div>
+
+            {/* Farmacia: Avatar + nombre */}
+            <div className="kanban-pharmacy-row">
+                <div
+                    className="kanban-avatar"
+                    style={{ background: `linear-gradient(135deg, ${avatarFrom}, ${avatarTo})` }}
+                    title={displayName}
+                >
+                    {initials}
+                </div>
+                <div className="kanban-pharmacy-info">
+                    <span className="kanban-pharmacy-name">{displayName}</span>
+                    {isUnread && (
+                        <span className="kanban-unread-dot" />
                     )}
                 </div>
-            )}
-
-            {/* Cuerpo: Avatar + nombre farmacia */}
-            <div className="kanban-card-body">
-                <div className="kanban-pharmacy-row">
-                    <div
-                        className="kanban-avatar"
-                        style={{ background: `linear-gradient(135deg, ${avatarFrom}, ${avatarTo})` }}
-                        title={displayName}
-                    >
-                        {initials}
-                    </div>
-                    <div className="kanban-pharmacy-info">
-                        <span className="kanban-pharmacy-name">{displayName}</span>
-                        {isUnread && (
-                            <span className="kanban-unread-dot"></span>
-                        )}
-                    </div>
-                </div>
-                <p className="kanban-card-desc">{ticket.description}</p>
-                <SlaProgressBar ticket={ticket} />
             </div>
+
+            {/* Descripción */}
+            <p className="kanban-card-desc">{ticket.description}</p>
+
+            {/* SLA */}
+            <SlaProgressBar ticket={ticket} />
 
         </div>
     );
