@@ -511,7 +511,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         }
         
         if (type === 'Material para impresión') {
-            return 'Yoselin';
+            return 'Yosselin';
         }
         
         if (type === 'Recetarios Médicos') {
@@ -521,7 +521,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         if (type === 'Insumos / utilería para activaciones o jornadas médicas') {
             const act = data.tipoActividad;
             if (['Activación', 'Jornada médica', 'Feria de salud', 'Evento institucional', 'Congreso'].includes(act)) {
-                return 'Yoselin';
+                return 'Yosselin';
             }
             return 'Yosselin';
         }

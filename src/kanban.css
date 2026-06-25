@@ -143,6 +143,7 @@
 .kanban-column-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -2308,4 +2309,86 @@
     background: var(--border-color);
     color: var(--text-muted);
     cursor: not-allowed;
+}
+
+.assignee-badge-pill {
+    font-size: 0.72rem;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: rgba(14, 165, 233, 0.07);
+    color: #0ea5e9;
+    border: 1px solid rgba(14, 165, 233, 0.14);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.assignee-badge-pill:hover {
+    background: rgba(14, 165, 233, 0.15);
+    border-color: rgba(14, 165, 233, 0.3);
+    transform: scale(1.05);
+}
+
+/* Kanban Card Assignee Badges */
+.kanban-card-assignee-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.kanban-card-assignee {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.kanban-card-assignee i {
+    font-size: 0.7rem;
+}
+
+.assignee-yarleny {
+    color: #a855f7;
+    background: rgba(168, 85, 247, 0.08);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.assignee-angelica {
+    color: #0ea5e9;
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.2);
+}
+
+.assignee-yosselin {
+    color: #ec4899;
+    background: rgba(236, 72, 153, 0.08);
+    border: 1px solid rgba(236, 72, 153, 0.2);
+}
+
+.assignee-emma {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.assignee-sin-asignar {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+/* Avatar sin asignar: circulo gris punteado */
+.kanban-avatar.unassigned-avatar {
+    background: transparent !important;
+    border: 2px dashed #64748b;
+    color: #64748b;
+    font-size: 0.75rem;
 }

@@ -1717,66 +1717,115 @@ textarea:focus {
 .accordion-action-bar-premium {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 12px 16px;
-    margin-top: 8px;
+    justify-content: stretch;
+    gap: 12px;
+    padding: 8px 16px;
+    margin-top: 10px;
     margin-bottom: 16px;
-    background: rgba(99, 102, 241, 0.03);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    flex-wrap: wrap;
-    animation: fadeIn 0.3s ease;
+    background: rgba(99, 102, 241, 0.04);
+    border: 1px solid rgba(99, 102, 241, 0.12);
+    border-radius: 14px;
+    flex-wrap: nowrap;
+    animation: fadeIn 0.25s ease;
     width: 100%;
     box-sizing: border-box;
+    backdrop-filter: blur(6px);
+    position: relative;
 }
 
 [data-theme="light"] .accordion-action-bar-premium {
-    background: rgba(99, 102, 241, 0.02);
-    border-color: rgba(99, 102, 241, 0.08);
+    background: rgba(99, 102, 241, 0.03);
+    border-color: rgba(99, 102, 241, 0.1);
 }
 
 .action-bar-meta {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .metadata-pill {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     font-weight: 500;
     white-space: nowrap;
-    background: var(--bg-card);
+    background: rgba(255,255,255,0.04);
     border: 1px solid var(--border-color);
-    padding: 6px 12px;
+    padding: 5px 11px;
     border-radius: 20px;
-    box-shadow: var(--shadow-sm);
 }
 
 .action-bar-controls {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 0;
+    flex-wrap: nowrap;
+    flex: 1;
+    width: 100%;
+    justify-content: space-between;
 }
 
 .status-selector-wrapper {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 5px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 3px 10px 3px 8px;
+    transition: border-color 0.2s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
+    flex: 1;
+    justify-content: center;
+    position: relative;
+    z-index: auto;
+}
+
+.status-selector-wrapper:hover {
+    border-color: rgba(99, 102, 241, 0.25);
+}
+
+[data-theme="light"] .status-selector-wrapper {
+    background: rgba(255,255,255,0.7);
+    border-color: rgba(99,102,241,0.12);
 }
 
 .status-selector-label {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--text-secondary);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
     white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
     display: flex;
     align-items: center;
     gap: 4px;
+}
+
+/* Dropdowns compactos dentro del action bar — sin borde ni background propio */
+.status-selector-wrapper .custom-select-trigger {
+    height: 28px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 6px !important;
+    font-size: 0.8rem !important;
+    min-width: 80px;
+}
+
+.status-selector-wrapper .custom-select-container {
+    min-width: unset;
+    position: relative;
+    z-index: 200;
+}
+
+.status-selector-wrapper .custom-select-options {
+    z-index: 9999 !important;
+    position: absolute !important;
 }
 
 /* Select de estado adaptado al tema */
@@ -3450,8 +3499,8 @@ button:focus-visible,
     backdrop-filter: blur(16px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.05);
     width: 100%;
-    max-width: 520px;
-    margin: 0 auto 20px auto;
+    max-width: 100%;
+    margin: 0 0 20px 0;
     transition: var(--transition-smooth);
     position: relative;
     z-index: 100;
@@ -4066,5 +4115,14 @@ button:focus-visible,
 }
 [data-tooltip-position="bottom"]:hover::before {
     transform: translateX(-50%) translateY(0);
+}
+
+/* Ajuste de tooltip alineado a la izquierda para evitar cortes */
+[data-tooltip-position="left-align"]::after {
+    left: -8px;
+    transform: translateY(6px) scale(0.92);
+}
+[data-tooltip-position="left-align"]:hover::after {
+    transform: translateY(0) scale(1);
 }
 

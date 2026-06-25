@@ -156,15 +156,36 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
                 </div>
             </div>
 
-            {/* Farmacia: Avatar + nombre */}
+            {/* Farmacia: Avatar encargado + nombre farmacia */}
             <div className="kanban-pharmacy-row">
-                <div
-                    className="kanban-avatar"
-                    style={{ background: `linear-gradient(135deg, ${avatarFrom}, ${avatarTo})` }}
-                    data-tooltip={displayName}
-                >
-                    {initials}
-                </div>
+                {/* Avatar del encargado en lugar del avatar de farmacia */}
+                {ticket.assigned_to && ticket.assigned_to !== 'Sin asignar' ? (() => {
+                    const COLORS = {
+                        'Yarleny':  '#a855f7',
+                        'Angelica': '#0ea5e9',
+                        'Yosselin': '#ec4899',
+                        'Emma':     '#3b82f6',
+                    };
+                    const bg = COLORS[ticket.assigned_to] || '#6366f1';
+                    return (
+                        <div
+                            className="kanban-avatar"
+                            style={{ background: bg }}
+                            data-tooltip={`Encargado: ${ticket.assigned_to}`}
+                            data-tooltip-position="left-align"
+                        >
+                            {ticket.assigned_to.charAt(0).toUpperCase()}
+                        </div>
+                    );
+                })() : (
+                    <div
+                        className="kanban-avatar unassigned-avatar"
+                        data-tooltip="Sin asignar"
+                        data-tooltip-position="left-align"
+                    >
+                        <i className="fa-solid fa-user-slash"></i>
+                    </div>
+                )}
                 <div className="kanban-pharmacy-info">
                     <span className="kanban-pharmacy-name">{displayName}</span>
                     {isUnread && (

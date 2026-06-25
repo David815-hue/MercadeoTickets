@@ -5,6 +5,8 @@ import KanbanBoard from './KanbanBoard';
 import CustomStatusDropdown from './CustomStatusDropdown';
 import CustomPriorityDropdown from './CustomPriorityDropdown';
 import CustomFilterDropdown from './CustomFilterDropdown';
+import CustomAssigneeDropdown from './CustomAssigneeDropdown';
+import CustomAssigneeFilterDropdown from './CustomAssigneeFilterDropdown';
 import { toast } from 'sonner';
 import FormSelect from './FormSelect';
 import SlaProgressBar from './SlaProgressBar';
@@ -17,6 +19,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [tickets, setTickets] = useState([]);
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState('ALL');
+    const [filterAssignee, setFilterAssignee] = useState('ALL');
     const [activeTicket, setActiveTicket] = useState(null);
     const [unreadTicketIds, setUnreadTicketIds] = useState(new Set());
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
@@ -258,6 +261,31 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
         } catch (e) {
             console.error('Error al cambiar prioridad:', e);
             toast.error('No se pudo actualizar la prioridad del ticket.');
+        }
+    };
+
+    const handleAssigneeChange = async (ticketId, newAssignee) => {
+        try {
+            const { error } = await supabase
+                .from('tickets')
+                .update({ assigned_to: newAssignee })
+                .eq('id', ticketId);
+
+            if (error) throw error;
+
+            setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, assigned_to: newAssignee } : t));
+            if (activeTicket && activeTicket.id === ticketId) {
+                setActiveTicket(prev => ({ ...prev, assigned_to: newAssignee }));
+            }
+            if (selectedDetailTicket && selectedDetailTicket.id === ticketId) {
+                setSelectedDetailTicket(prev => ({ ...prev, assigned_to: newAssignee }));
+            }
+
+            toast.success(`Ticket asignado a: "${newAssignee}"`);
+
+        } catch (e) {
+            console.error('Error al cambiar encargado:', e);
+            toast.error('No se pudo reasignar el ticket.');
         }
     };
 
@@ -562,8 +590,9 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                               (ticket.ticket_number && ticket.ticket_number.toString().includes(query));
 
         const matchesStatus = filterStatus === 'ALL' || ticket.status === filterStatus;
+        const matchesAssignee = filterAssignee === 'ALL' || (ticket.assigned_to || 'Sin asignar') === filterAssignee;
 
-        return matchesSearch && matchesStatus;
+        return matchesSearch && matchesStatus && matchesAssignee;
     });
 
     // Métricas KPI
@@ -974,6 +1003,12 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                                 {ticket.request_type.replace(' o jornadas médicas', '').substring(0, 18)}...
                                                             </span>
                                                         )}
+                                                        {ticket.assigned_to && ticket.assigned_to !== 'Sin asignar' && (
+                                                            <span className="card-badge-assignee" style={{ fontSize: '0.68rem', padding: '2px 6px', background: 'rgba(255,255,255,0.04)', color: 'var(--text-muted)', borderRadius: '4px', border: '1px solid var(--border-color)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                <i className="fa-solid fa-user-circle" style={{ fontSize: '0.72rem', color: 'var(--color-primary)' }}></i>
+                                                                {ticket.assigned_to}
+                                                            </span>
+                                                        )}
                                                         {(() => {
                                                             const daysInfo = getElapsedDays(ticket);
                                                             
@@ -1050,6 +1085,10 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                         value={activeTicket.priority || 'Normal'}
                                                         onChange={(val) => handlePriorityChange(activeTicket.id, val)}
                                                     />
+                                                    <CustomAssigneeDropdown 
+                                                        value={activeTicket.assigned_to || 'Sin asignar'}
+                                                        onChange={(val) => handleAssigneeChange(activeTicket.id, val)}
+                                                    />
                                                 </div>
                                             </div>
 
@@ -1122,16 +1161,20 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                             <div className="capsule-divider"></div>
 
                             <CustomFilterDropdown 
-                                value={filterStatus}
-                                onChange={setFilterStatus}
-                            />
+                                                                value={filterStatus}
+                                                                onChange={setFilterStatus}
+                                                            />
+                                                            <CustomAssigneeFilterDropdown 
+                                                                value={filterAssignee}
+                                                                onChange={setFilterAssignee}
+                                                            />
                         </div>
                     )}
 
                     {/* Listado en estilo tarjetas modernas */}
                     {viewType === 'kanban' && (
                         <KanbanBoard 
-                            tickets={tickets}
+                            tickets={filteredTickets}
                             onOpenChat={handleOpenChat}
                             onOpenDetails={(ticket) => {
                                 setSelectedDetailTicket(ticket);
@@ -1217,6 +1260,16 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                                <i className={getRequestTypeIcon(ticket.request_type)}></i>
                                                            </span>
                                                       )}
+                                                      {ticket.assigned_to && ticket.assigned_to !== 'Sin asignar' && (
+                                                           <span 
+                                                               className="assignee-badge-pill" 
+                                                               data-tooltip={`Encargado: ${ticket.assigned_to}`}
+                                                               data-tooltip-position={idx === 0 ? "bottom" : undefined}
+                                                               style={{ marginLeft: '4px' }}
+                                                           >
+                                                               <i className="fa-solid fa-user-gear"></i>
+                                                           </span>
+                                                      )}
                                                  </div>
                                                   <span
                                                       className="accordion-ticket-desc"
@@ -1262,11 +1315,6 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                  )}
                                                  
                                                  <div className="accordion-action-bar-premium">
-                                                      <div className="action-bar-meta">
-                                                          <span className="metadata-pill">
-                                                              <i className="fa-regular fa-clock"></i> {fecha}
-                                                          </span>
-                                                      </div>
                                                       <div className="action-bar-controls" onClick={(e) => e.stopPropagation()}>
                                                           <div className="status-selector-wrapper">
                                                               <span className="status-selector-label">
@@ -1286,13 +1334,22 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                                   onChange={(val) => handlePriorityChange(ticket.id, val)}
                                                               />
                                                           </div>
+                                                          <div className="status-selector-wrapper" onClick={(e) => e.stopPropagation()}>
+                                                              <span className="status-selector-label">
+                                                                  Encargado:
+                                                              </span>
+                                                              <CustomAssigneeDropdown 
+                                                                  value={ticket.assigned_to || 'Sin asignar'}
+                                                                  onChange={(val) => handleAssigneeChange(ticket.id, val)}
+                                                              />
+                                                          </div>
                                                           <button 
                                                               className={`btn ${hasUnread ? 'btn-danger' : 'btn-primary'} btn-sm unread-badge-container`}
                                                               onClick={() => handleOpenChat(ticket)}
-                                                              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                              style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}
                                                           >
                                                               <i className="fa-regular fa-comments"></i>
-                                                              <span>Interactuar</span>
+                                                              <span>Chat</span>
                                                               {hasUnread && <span className="pulsing-alert-dot"></span>}
                                                           </button>
                                                       </div>
@@ -1575,6 +1632,13 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                     <CustomPriorityDropdown 
                                         value={selectedDetailTicket.priority || 'Normal'}
                                         onChange={(val) => handlePriorityChange(selectedDetailTicket.id, val)}
+                                    />
+                                </div>
+                                <div className="detail-meta-item" style={{ overflow: 'visible' }}>
+                                    <label>Encargado</label>
+                                    <CustomAssigneeDropdown 
+                                        value={selectedDetailTicket.assigned_to || 'Sin asignar'}
+                                        onChange={(val) => handleAssigneeChange(selectedDetailTicket.id, val)}
                                     />
                                 </div>
                                 <div className="detail-meta-item">
@@ -1945,6 +2009,14 @@ function renderStructuredDetails(ticket) {
                 <div className="structured-detail-item">
                     <span className="structured-detail-label">Rol del Solicitante</span>
                     <span className="structured-detail-value">{ticket.requester_role || 'No especificado'}</span>
+                </div>
+
+                <div className="structured-detail-item">
+                    <span className="structured-detail-label">Fecha de Solicitud</span>
+                    <span className="structured-detail-value">
+                        <i className="fa-regular fa-clock" style={{ marginRight: '5px', opacity: 0.6 }}></i>
+                        {new Date(ticket.created_at).toLocaleString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
                 </div>
                 
                 <div className="structured-detail-item">
