@@ -779,7 +779,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                 <p>No tienes tickets registrados. ¡Crea uno nuevo arriba!</p>
                             </div>
                         ) : (
-                            tickets.map(ticket => {
+                            tickets.map((ticket, idx) => {
                                 const isExpanded = expandedTicketId === ticket.id;
                                 const hasUnread = unreadTicketIds.has(ticket.id);
                                 const fecha = new Date(ticket.created_at).toLocaleDateString('es-ES', {
@@ -801,31 +801,38 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                     >
                                         {/* Cabecera del acordeón */}
                                         <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>
-                                             <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '8px' }}>
+                                             <div className="accordion-header-left" style={{ maxWidth: '75%', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '8px' }}>
                                                  <span className="accordion-ticket-id">
                                                      {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}
                                                  </span>
-                                                 {hasUnread && <span className="badge-unread" style={{ flexShrink: 0 }}>Nuevo Mensaje</span>}
-                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
+                                                 {hasUnread && <span className="badge-unread" style={{ flexShrink: 0 }}>Nuevo</span>}
+                                                 {/* Badges en línea horizontal */}
+                                                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                                                      {ticket.priority && ticket.priority !== 'Sin prioridad' && (
-                                                         <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase()}`} style={{ width: 'fit-content', margin: 0 }}>
+                                                         <span 
+                                                             className={`priority-badge-pill priority-${ticket.priority.toLowerCase()}`}
+                                                             data-tooltip={`Prioridad: ${ticket.priority}`}
+                                                             data-tooltip-position={idx === 0 ? "bottom" : undefined}
+                                                         >
                                                              <i className="fa-solid fa-circle-exclamation"></i>
-                                                             {ticket.priority}
                                                          </span>
                                                      )}
                                                      {ticket.request_type && (
-                                                         <span className="type-badge-pill" style={{ width: 'fit-content', margin: 0 }}>
+                                                         <span 
+                                                             className="type-badge-pill" 
+                                                             data-tooltip={`Categoría: ${ticket.request_type}`}
+                                                             data-tooltip-position={idx === 0 ? "bottom" : undefined}
+                                                         >
                                                              <i className={getRequestTypeIcon(ticket.request_type)}></i>
-                                                             {ticket.request_type}
                                                          </span>
                                                      )}
                                                  </div>
-                                                 <span 
-                                                     className="accordion-ticket-desc" 
-                                                     style={{ 
-                                                         color: 'var(--text-secondary)', 
-                                                         fontSize: '0.9rem', 
-                                                         fontWeight: '500',
+                                                 <span
+                                                     className="accordion-ticket-desc"
+                                                     style={{
+                                                         color: 'var(--text-secondary)',
+                                                         fontSize: '0.82rem',
+                                                         fontWeight: '400',
                                                          overflow: 'hidden',
                                                          textOverflow: 'ellipsis',
                                                          whiteSpace: 'nowrap',
@@ -834,7 +841,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                      }}
                                                      title={ticket.description}
                                                  >
-                                                     — {ticket.description}
+                                                     {ticket.description}
                                                  </span>
                                              </div>
                                              <div className="accordion-header-right">

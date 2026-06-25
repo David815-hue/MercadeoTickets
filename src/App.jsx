@@ -40,17 +40,22 @@ export default function App() {
         setLoading(false);
     }, []);
 
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
     const handleLoginSuccess = (user) => {
         localStorage.setItem('ticket_system_session', JSON.stringify(user));
         setCurrentUser(user);
     };
 
-    const handleLogout = async () => {
-        if (window.confirm('¿Deseas cerrar sesión?')) {
-            await supabase.auth.signOut();
-            localStorage.removeItem('ticket_system_session');
-            setCurrentUser(null);
-        }
+    const handleLogout = () => {
+        setShowLogoutConfirm(true);
+    };
+
+    const confirmLogout = async () => {
+        setShowLogoutConfirm(false);
+        await supabase.auth.signOut();
+        localStorage.removeItem('ticket_system_session');
+        setCurrentUser(null);
     };
 
     if (loading) {
@@ -87,6 +92,38 @@ export default function App() {
                 <AdminDashboard currentUser={currentUser} onLogout={handleLogout} currentTheme={theme} onToggleTheme={toggleTheme} />
             ) : (
                 <PharmacyDashboard currentUser={currentUser} onLogout={handleLogout} currentTheme={theme} onToggleTheme={toggleTheme} />
+            )}
+
+            {showLogoutConfirm && (
+                <div className="modal-overlay" onClick={() => setShowLogoutConfirm(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '30px' }}>
+                        <div style={{ fontSize: '2.5rem', color: 'var(--color-primary)', marginBottom: '16px' }}>
+                            <i className="fa-solid fa-right-from-bracket"></i>
+                        </div>
+                        <h3 style={{ margin: '0 0 10px 0', fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            ¿Cerrar Sesión?
+                        </h3>
+                        <p style={{ margin: '0 0 24px 0', color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.4' }}>
+                            ¿Estás seguro de que deseas cerrar tu sesión en el sistema de tickets?
+                        </p>
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                            <button 
+                                className="btn btn-secondary" 
+                                onClick={() => setShowLogoutConfirm(false)}
+                                style={{ flex: 1, padding: '10px 16px', fontSize: '0.85rem', borderRadius: '8px' }}
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                className="btn btn-danger" 
+                                onClick={confirmLogout}
+                                style={{ flex: 1, padding: '10px 16px', fontSize: '0.85rem', borderRadius: '8px' }}
+                            >
+                                Sí, salir
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );

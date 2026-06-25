@@ -1627,24 +1627,26 @@ textarea:focus {
 }
 
 .accordion-header {
-    padding: 22px 28px;
+    padding: 14px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
     user-select: none;
+    min-height: 0;
 }
 
 .accordion-header-left {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
 }
 
 .accordion-ticket-id {
-    font-size: 0.95rem;
+    font-size: 0.78rem;
     font-weight: 800;
     color: var(--color-primary);
+    flex-shrink: 0;
 }
 
 .accordion-ticket-date {
@@ -1655,7 +1657,7 @@ textarea:focus {
 .accordion-header-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
 }
 
 .accordion-chevron {
@@ -3995,3 +3997,74 @@ button:focus-visible,
     width: 6px !important;
     height: 6px !important;
 }
+
+/* Tooltip Premium Customizado */
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translate(-50%, 6px) scale(0.92);
+    background: rgba(15, 23, 42, 0.95);
+    color: #ffffff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 9999;
+}
+
+[data-tooltip]::before {
+    content: '';
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    border-width: 5px 5px 0;
+    border-style: solid;
+    border-color: rgba(15, 23, 42, 0.95) transparent transparent;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 9999;
+}
+
+[data-tooltip]:hover::after {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+}
+
+[data-tooltip]:hover::before {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Ajustes de tooltip hacia abajo para elementos superiores */
+[data-tooltip-position="bottom"]::after {
+    bottom: auto;
+    top: 125%;
+    transform: translate(-50%, -6px) scale(0.92);
+}
+[data-tooltip-position="bottom"]::before {
+    bottom: auto;
+    top: 110%;
+    border-width: 0 5px 5px;
+    border-color: transparent transparent rgba(15, 23, 42, 0.95);
+    transform: translateX(-50%) translateY(-6px);
+}
+[data-tooltip-position="bottom"]:hover::after {
+    transform: translate(-50%, 0) scale(1);
+}
+[data-tooltip-position="bottom"]:hover::before {
+    transform: translateX(-50%) translateY(0);
+}
+

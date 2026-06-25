@@ -143,13 +143,13 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
                     {ticket.priority && (
                         <span
                             className={`kanban-priority-dot ${priorityDotClass}`}
-                            title={`Prioridad: ${ticket.priority}`}
+                            data-tooltip={`Prioridad: ${ticket.priority}`}
                         />
                     )}
                     {ticket.request_type && (
                         <i
                             className={`kanban-type-icon ${getRequestTypeIcon(ticket.request_type)}`}
-                            title={ticket.request_type}
+                            data-tooltip={`Categoría: ${ticket.request_type}`}
                         />
                     )}
                     <span className="kanban-card-date">{fecha}</span>
@@ -161,7 +161,7 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
                 <div
                     className="kanban-avatar"
                     style={{ background: `linear-gradient(135deg, ${avatarFrom}, ${avatarTo})` }}
-                    title={displayName}
+                    data-tooltip={displayName}
                 >
                     {initials}
                 </div>

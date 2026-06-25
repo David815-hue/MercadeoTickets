@@ -65,6 +65,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
 
     // Formulario Cambiar Contraseña de otros
     const [selectedUserForReset, setSelectedUserForReset] = useState(null);
+    const [userToDeleteState, setUserToDeleteState] = useState(null);
     const [resetPasswordVal, setResetPasswordVal] = useState('');
     const [resetError, setResetError] = useState('');
     const [resetSuccess, setResetSuccess] = useState('');
@@ -463,19 +464,23 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     };
 
     // Eliminar usuario
-    const handleDeleteUser = async (userToDelete) => {
+    const handleDeleteUser = (userToDelete) => {
         if (userToDelete.id === currentUser.id) {
             toast.warning('No puedes eliminar tu propio usuario administrador.');
             return;
         }
+        setUserToDeleteState(userToDelete);
+    };
 
-        if (!window.confirm(`¿Estás seguro de que deseas eliminar al usuario "${userToDelete.username}"?\nEsta acción es irreversible y eliminará todos sus tickets y mensajes.`)) {
-            return;
-        }
+    // Confirmar eliminación
+    const confirmDeleteUser = async () => {
+        if (!userToDeleteState) return;
+        const userToDel = userToDeleteState;
+        setUserToDeleteState(null);
 
         try {
             const { error } = await supabase.rpc('delete_profile_user', {
-                p_user_id: userToDelete.id
+                p_user_id: userToDel.id
             });
 
             if (error) throw error;
@@ -483,8 +488,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
             toast.success('Usuario eliminado correctamente.');
             await loadProfiles();
         } catch (err) {
-            console.error('Error al eliminar usuario:', err);
-            toast.error(err.message || 'No se pudo eliminar el usuario.');
+            toast.error('Error al eliminar usuario: ' + err.message);
         }
     };
 
@@ -1151,7 +1155,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                 <p>No hay solicitudes para mostrar.</p>
                             </div>
                         ) : (
-                            filteredTickets.map(ticket => {
+                            filteredTickets.map((ticket, idx) => {
                                 const isExpanded = expandedTicketId === ticket.id;
                                 const hasUnread = unreadTicketIds.has(ticket.id);
                                 const fecha = new Date(ticket.created_at).toLocaleDateString('es-ES', {
@@ -1172,43 +1176,54 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                         }}
                                     >
                                                                <div className="accordion-header" onClick={() => toggleAccordion(ticket.id)}>
-                                             <div className="accordion-header-left" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '8px' }}>
+                                             <div className="accordion-header-left" style={{ maxWidth: '75%', display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '8px' }}>
                                                  <span className="accordion-ticket-id">
                                                      {ticket.ticket_number ? `TK-${ticket.ticket_number}` : `#${ticket.id.substring(0, 8)}...`}
                                                  </span>
-                                                 <span 
-                                                     className="accordion-ticket-pharmacy" 
-                                                     style={{ 
-                                                         color: 'var(--text-primary)', 
-                                                         fontWeight: '700',
-                                                         fontSize: '0.95rem',
+                                                 <span
+                                                     className="accordion-pharmacy-name"
+                                                     style={{
+                                                         color: 'var(--text-primary)',
+                                                         fontSize: '0.85rem',
+                                                         fontWeight: '600',
+                                                         textOverflow: 'ellipsis',
+                                                         whiteSpace: 'nowrap',
+                                                         overflow: 'hidden',
+                                                         maxWidth: '140px',
                                                          flexShrink: 0
                                                      }}
                                                  >
                                                      <i className="fa-solid fa-hospital" style={{ color: 'var(--color-primary)', marginRight: '6px' }}></i>
                                                      {getPharmacyDisplayName(ticket.pharmacy_name)}
                                                  </span>
-                                                 {hasUnread && <span className="badge-unread" style={{ flexShrink: 0 }}>Nuevo Mensaje</span>}
-                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
+                                                 {hasUnread && <span className="badge-unread" style={{ flexShrink: 0 }}>Nuevo</span>}
+                                                 {/* Badges en línea horizontal */}
+                                                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                                                       {ticket.priority && (
-                                                          <span className={`priority-badge-pill priority-${ticket.priority.toLowerCase().replace(' ', '-')}`} style={{ width: 'fit-content', margin: 0 }}>
+                                                          <span 
+                                                              className={`priority-badge-pill priority-${ticket.priority.toLowerCase().replace(' ', '-')}`}
+                                                              data-tooltip={`Prioridad: ${ticket.priority}`}
+                                                              data-tooltip-position={idx === 0 ? "bottom" : undefined}
+                                                          >
                                                               <i className="fa-solid fa-circle-exclamation"></i>
-                                                              {ticket.priority}
                                                           </span>
                                                       )}
                                                       {ticket.request_type && (
-                                                          <span className="type-badge-pill" style={{ width: 'fit-content', margin: 0 }}>
-                                                              <i className={getRequestTypeIcon(ticket.request_type)}></i>
-                                                              {ticket.request_type}
-                                                          </span>
+                                                           <span 
+                                                               className="type-badge-pill" 
+                                                               data-tooltip={`Categoría: ${ticket.request_type}`}
+                                                               data-tooltip-position={idx === 0 ? "bottom" : undefined}
+                                                           >
+                                                               <i className={getRequestTypeIcon(ticket.request_type)}></i>
+                                                           </span>
                                                       )}
-                                                  </div>
-                                                  <span 
-                                                      className="accordion-ticket-desc" 
-                                                      style={{ 
-                                                          color: 'var(--text-secondary)', 
-                                                          fontSize: '0.9rem', 
-                                                          fontWeight: '500',
+                                                 </div>
+                                                  <span
+                                                      className="accordion-ticket-desc"
+                                                      style={{
+                                                          color: 'var(--text-secondary)',
+                                                          fontSize: '0.82rem',
+                                                          fontWeight: '400',
                                                           overflow: 'hidden',
                                                           textOverflow: 'ellipsis',
                                                           whiteSpace: 'nowrap',
@@ -1217,7 +1232,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                       }}
                                                       title={ticket.description}
                                                   >
-                                                      — {ticket.description}
+                                                      {ticket.description}
                                                   </span>
                                               </div>
                                               <div className="accordion-header-right">
@@ -1777,11 +1792,48 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                 <AuditLogModal 
                     isOpen={isAuditModalOpen} 
                     onClose={() => {
-                        setIsAuditModalOpen(false);
                         setAuditLogTicket(null);
+                        setIsAuditModalOpen(false);
                     }}
                     ticket={auditLogTicket}
                 />
+            )}
+
+            {/* MODAL: Confirmar Eliminación de Usuario */}
+            {userToDeleteState && (
+                <div className="modal-overlay" onClick={() => setUserToDeleteState(null)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '30px' }}>
+                        <div style={{ fontSize: '2.5rem', color: 'var(--color-danger)', marginBottom: '16px' }}>
+                            <i className="fa-solid fa-user-xmark"></i>
+                        </div>
+                        <h3 style={{ margin: '0 0 10px 0', fontSize: '1.25rem', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            ¿Eliminar Usuario?
+                        </h3>
+                        <p style={{ margin: '0 0 24px 0', color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.4' }}>
+                            ¿Estás seguro de que deseas eliminar al usuario <strong>"{userToDeleteState.username}"</strong>?
+                            <br />
+                            <span style={{ color: 'var(--color-danger)', fontWeight: '600', marginTop: '6px', display: 'block' }}>
+                                Esta acción es irreversible y eliminará todos sus tickets y mensajes.
+                            </span>
+                        </p>
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                            <button 
+                                className="btn btn-secondary" 
+                                onClick={() => setUserToDeleteState(null)}
+                                style={{ flex: 1, padding: '10px 16px', fontSize: '0.85rem', borderRadius: '8px' }}
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                className="btn btn-danger" 
+                                onClick={confirmDeleteUser}
+                                style={{ flex: 1, padding: '10px 16px', fontSize: '0.85rem', borderRadius: '8px' }}
+                            >
+                                Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
