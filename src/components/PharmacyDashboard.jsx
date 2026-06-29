@@ -848,7 +848,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                         ) : tickets.length === 0 ? (
                             <div className="empty-state">
                                 <i className="fa-solid fa-inbox"></i>
-                                <p>No tienes tickets registrados. ¡Crea uno nuevo arriba!</p>
+                                <p>No tienes tickets registrados</p>
                             </div>
                         ) : (
                             tickets.map((ticket, idx) => {
@@ -884,7 +884,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                          <span 
                                                              className={`priority-badge-pill priority-${ticket.priority.toLowerCase()}`}
                                                              data-tooltip={`Prioridad: ${ticket.priority}`}
-                                                             data-tooltip-position={idx === 0 ? "bottom" : undefined}
+                                                             data-tooltip-position={idx === 0 ? "bottom-right-align" : "top-right-align"}
                                                          >
                                                              <i className="fa-solid fa-circle-exclamation"></i>
                                                          </span>
@@ -893,7 +893,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                          <span 
                                                              className="type-badge-pill" 
                                                              data-tooltip={`Categoría: ${ticket.request_type}`}
-                                                             data-tooltip-position={idx === 0 ? "bottom" : undefined}
+                                                             data-tooltip-position={idx === 0 ? "bottom-right-align" : "top-right-align"}
                                                          >
                                                              <i className={getRequestTypeIcon(ticket.request_type)}></i>
                                                          </span>

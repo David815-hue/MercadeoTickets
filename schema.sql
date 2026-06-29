@@ -287,7 +287,7 @@ BEGIN
     -- Generar password encriptada (con crypt de pgcrypto)
     encrypted_pw := crypt(p_password, gen_salt('bf'));
     
-    -- Insertar en auth.users
+    -- Insertar en auth.users con todos los tokens e inputs de email_change inicializados a '' (vacío) para evitar errores de tipo en GoTrue (Supabase Auth)
     INSERT INTO auth.users (
         instance_id,
         id,
@@ -301,7 +301,15 @@ BEGIN
         raw_app_meta_data,
         raw_user_meta_data,
         is_sso_user,
-        is_anonymous
+        is_anonymous,
+        confirmation_token,
+        recovery_token,
+        email_change_token_new,
+        email_change,
+        phone_change,
+        phone_change_token,
+        email_change_token_current,
+        reauthentication_token
     )
     VALUES (
         '00000000-0000-0000-0000-000000000000',
@@ -316,7 +324,15 @@ BEGIN
         jsonb_build_object('provider', 'email', 'providers', array['email']),
         jsonb_build_object('username', p_username),
         false,
-        false
+        false,
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        '',
+        ''
     )
     RETURNING id INTO new_user_id;
 
@@ -501,5 +517,122 @@ DROP TRIGGER IF EXISTS on_ticket_status_update ON public.tickets;
 CREATE TRIGGER on_ticket_status_update
   BEFORE UPDATE ON public.tickets
   FOR EACH ROW EXECUTE FUNCTION public.log_ticket_status_change();
+
+
+-- ====================================================
+-- LIMPIEZA AUTOMÁTICA DE TICKETS COMPLETADOS (RPC)
+-- ====================================================
+-- Elimina mensajes, entregables y todos sus archivos asociados (incluyendo adjuntos iniciales) en storage después de 2 semanas de finalizado
+CREATE OR REPLACE FUNCTION public.cleanup_old_completed_tickets()
+RETURNS json AS $$
+DECLARE
+    ticket_rec RECORD;
+    msg_deleted_count INT := 0;
+    del_deleted_count INT := 0;
+    storage_deleted_count INT := 0;
+    tk_count INT := 0;
+    result json;
+BEGIN
+    FOR ticket_rec IN 
+        SELECT id FROM public.tickets 
+        WHERE finalized_at IS NOT NULL 
+          AND finalized_at < now() - INTERVAL '2 weeks'
+    LOOP
+        -- 1. Eliminar TODOS los archivos del ticket en storage (adjuntos iniciales, entregables, imágenes de chat)
+        WITH deleted_storage AS (
+            DELETE FROM storage.objects 
+            WHERE bucket_id = 'ticket-attachments' 
+              AND name LIKE 'tickets/' || ticket_rec.id || '/%'
+            RETURNING id
+        )
+        SELECT COALESCE(COUNT(*), 0) + storage_deleted_count INTO storage_deleted_count FROM deleted_storage;
+
+        -- 2. Limpiar el campo de adjuntos iniciales (attachments) en el ticket
+        UPDATE public.tickets 
+        SET attachments = '[]'::jsonb 
+        WHERE id = ticket_rec.id;
+
+        -- 3. Eliminar filas de la tabla de entregables
+        WITH deleted_del AS (
+            DELETE FROM public.ticket_deliverables
+            WHERE ticket_id = ticket_rec.id
+            RETURNING id
+        )
+        SELECT COALESCE(COUNT(*), 0) + del_deleted_count INTO del_deleted_count FROM deleted_del;
+
+        -- 4. Eliminar filas de la tabla de mensajes
+        WITH deleted_msg AS (
+            DELETE FROM public.messages
+            WHERE ticket_id = ticket_rec.id
+            RETURNING id
+        )
+        SELECT COALESCE(COUNT(*), 0) + msg_deleted_count INTO msg_deleted_count FROM deleted_msg;
+
+        tk_count := tk_count + 1;
+    END LOOP;
+
+    result := json_build_object(
+        'cleaned_tickets_count', tk_count,
+        'messages_deleted', msg_deleted_count,
+        'deliverables_deleted', del_deleted_count,
+        'files_deleted', storage_deleted_count
+    );
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.cleanup_old_completed_tickets() TO authenticated;
+
+
+-- ====================================================
+-- GESTIÓN DE CONTACTOS POR FARMACIA (NOTIFICACIONES)
+-- ====================================================
+
+CREATE TABLE IF NOT EXISTS public.pharmacy_contacts (
+    profile_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE PRIMARY KEY,
+    regente_name TEXT,
+    regente_email TEXT,
+    jefe_name TEXT,
+    jefe_email TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.pharmacy_contacts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir leer contactos a todos" ON public.pharmacy_contacts;
+CREATE POLICY "Permitir leer contactos a todos" 
+ON public.pharmacy_contacts FOR SELECT 
+USING (true);
+
+DROP POLICY IF EXISTS "Permitir actualizar contactos a administradores" ON public.pharmacy_contacts;
+CREATE POLICY "Permitir actualizar contactos a administradores" 
+ON public.pharmacy_contacts FOR UPDATE 
+USING ( (auth.jwt() ->> 'email') LIKE 'admin%' );
+
+DROP POLICY IF EXISTS "Permitir insertar contactos a todos" ON public.pharmacy_contacts;
+CREATE POLICY "Permitir insertar contactos a todos" 
+ON public.pharmacy_contacts FOR INSERT 
+WITH CHECK (true);
+
+CREATE OR REPLACE FUNCTION public.handle_new_pharmacy_contacts()
+RETURNS trigger AS $$
+BEGIN
+    IF NEW.role = 'farmacia' THEN
+        INSERT INTO public.pharmacy_contacts (profile_id)
+        VALUES (NEW.id)
+        ON CONFLICT (profile_id) DO NOTHING;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_profile_created_contacts ON public.profiles;
+CREATE TRIGGER on_profile_created_contacts
+  AFTER INSERT ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_pharmacy_contacts();
+
+
 
 

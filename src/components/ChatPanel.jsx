@@ -276,6 +276,17 @@ export default function ChatPanel({ ticket, currentUser, isAdmin, onStatusChange
                 });
             }
 
+            // Si el mensaje es del administrador, disparar notificación por correo
+            if (currentUser.role === 'admin') {
+                supabase.functions.invoke('send-email', {
+                    body: {
+                        ticket_id: ticket.id,
+                        type: 'message',
+                        message_text: msgText || (hasImage ? '[Imagen adjunta]' : '')
+                    }
+                }).catch(err => console.error('Error al enviar correo por nuevo mensaje:', err));
+            }
+
             // Limpiar inputs
             setText('');
             clearSelectedImage();

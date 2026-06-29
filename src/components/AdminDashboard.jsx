@@ -74,9 +74,21 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [resetSuccess, setResetSuccess] = useState('');
     const [isSavingReset, setIsSavingReset] = useState(false);
 
+    // Estados de contactos de farmacias
+    const [isContactsModalOpen, setIsContactsModalOpen] = useState(false);
+    const [selectedPharmacyProfile, setSelectedPharmacyProfile] = useState(null);
+    const [contactsRegenteName, setContactsRegenteName] = useState('');
+    const [contactsRegenteEmail, setContactsRegenteEmail] = useState('');
+    const [contactsJefeName, setContactsJefeName] = useState('');
+    const [contactsJefeEmail, setContactsJefeEmail] = useState('');
+    const [isSavingContacts, setIsSavingContacts] = useState(false);
+    const [contactsError, setContactsError] = useState('');
+    const [contactsSuccess, setContactsSuccess] = useState('');
+
     useEffect(() => {
         loadTickets();
         fetchDbSize();
+        runAutoCleanup();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -114,6 +126,24 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
             }
         } catch (err) {
             console.error('Error fetching db size:', err);
+        }
+    };
+
+    const runAutoCleanup = async () => {
+        try {
+            const { data, error } = await supabase.rpc('cleanup_old_completed_tickets');
+            if (error) {
+                console.error('Error running completed tickets cleanup:', error);
+            } else if (data) {
+                const count = data.cleaned_tickets_count || 0;
+                if (count > 0) {
+                    console.log(`[Auto Cleanup] Limpieza exitosa de ${count} tickets completados hace más de 2 semanas.`);
+                    console.log(`Detalle de eliminación: Mensajes: ${data.messages_deleted}, Entregables: ${data.deliverables_deleted}, Archivos: ${data.files_deleted}`);
+                    fetchDbSize();
+                }
+            }
+        } catch (err) {
+            console.error('Unexpected error in auto cleanup:', err);
         }
     };
 
@@ -223,6 +253,11 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                     sender_name: 'Sistema',
                     message_text: `El estado del ticket ha sido cambiado a: **${newStatus}**`
                 });
+
+            // Disparar correo de notificación
+            supabase.functions.invoke('send-email', {
+                body: { ticket_id: ticketId, type: 'status', new_status: newStatus }
+            }).catch(err => console.error('Error al enviar correo por cambio de estado:', err));
 
         } catch (e) {
             console.error('Error al cambiar estado:', e);
@@ -343,6 +378,11 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                     sender_name: 'Sistema',
                     message_text: `El estado del ticket ha sido cambiado a: **Rechazado**\nMotivo: ${finalReason}`
                 });
+
+            // Disparar correo de notificación
+            supabase.functions.invoke('send-email', {
+                body: { ticket_id: rejectionTicketId, type: 'status', new_status: 'Rechazado' }
+            }).catch(err => console.error('Error al enviar correo por rechazo:', err));
 
             // Cerrar modal
             setRejectionTicketId(null);
@@ -557,6 +597,72 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
         }
     };
 
+    const handleOpenContactsModal = async (profile) => {
+        setSelectedPharmacyProfile(profile);
+        setContactsRegenteName('');
+        setContactsRegenteEmail('');
+        setContactsJefeName('');
+        setContactsJefeEmail('');
+        setContactsError('');
+        setContactsSuccess('');
+        setIsContactsModalOpen(true);
+
+        try {
+            const { data, error } = await supabase
+                .from('pharmacy_contacts')
+                .select('*')
+                .eq('profile_id', profile.id)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (data) {
+                setContactsRegenteName(data.regente_name || '');
+                setContactsRegenteEmail(data.regente_email || '');
+                setContactsJefeName(data.jefe_name || '');
+                setContactsJefeEmail(data.jefe_email || '');
+            }
+        } catch (err) {
+            console.error('Error al cargar contactos de la farmacia:', err);
+            setContactsError('No se pudieron cargar los contactos existentes.');
+        }
+    };
+
+    const handleSaveContacts = async (e) => {
+        e.preventDefault();
+        setContactsError('');
+        setContactsSuccess('');
+        setIsSavingContacts(true);
+
+        try {
+            const { error } = await supabase
+                .from('pharmacy_contacts')
+                .upsert({
+                    profile_id: selectedPharmacyProfile.id,
+                    regente_name: contactsRegenteName.trim(),
+                    regente_email: contactsRegenteEmail.trim(),
+                    jefe_name: contactsJefeName.trim(),
+                    jefe_email: contactsJefeEmail.trim(),
+                    updated_at: new Date().toISOString()
+                });
+
+            if (error) throw error;
+
+            setContactsSuccess('Contactos actualizados correctamente.');
+            toast.success(`Contactos de ${getPharmacyDisplayName(selectedPharmacyProfile.username)} actualizados.`);
+            
+            setTimeout(() => {
+                setIsContactsModalOpen(false);
+                setSelectedPharmacyProfile(null);
+            }, 1000);
+        } catch (err) {
+            console.error('Error al guardar contactos:', err);
+            setContactsError(err.message || 'Error al guardar los contactos.');
+        } finally {
+            setIsSavingContacts(false);
+        }
+    };
+
     // Formatear última conexión
     const formatLastSeen = (isoString) => {
         if (!isoString) return 'Nunca';
@@ -595,7 +701,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
         return matchesSearch && matchesStatus && matchesAssignee;
     });
 
-    // Métricas KPI
+    // Métricas KPI (filtradas por búsqueda y responsable, pero no por estado para mantener visibilidad de todas las columnas)
     const counts = {
         recibido: 0,
         enProceso: 0,
@@ -605,14 +711,27 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
         rechazado: 0
     };
     tickets.forEach(t => {
-        const s = t.status.toLowerCase();
-        if (s === 'recibido') counts.recibido++;
-        else if (s === 'en proceso') counts.enProceso++;
-        else if (s === 'en revision' || s === 'en revisión') counts.enRevision++;
-        else if (s === 'aprobado') counts.aprobado++;
-        else if (s === 'finalizado') counts.finalizado++;
-        else if (s === 'rechazado') counts.rechazado++;
+        const query = search.toLowerCase().trim();
+        const displayName = getPharmacyDisplayName(t.pharmacy_name).toLowerCase();
+        const matchesSearch = t.pharmacy_name.toLowerCase().includes(query) ||
+                              displayName.includes(query) ||
+                              t.description.toLowerCase().includes(query) ||
+                              t.id.toLowerCase().includes(query) ||
+                              (t.ticket_number && t.ticket_number.toString().includes(query));
+
+        const matchesAssignee = filterAssignee === 'ALL' || (t.assigned_to || 'Sin asignar') === filterAssignee;
+
+        if (matchesSearch && matchesAssignee) {
+            const s = t.status.toLowerCase();
+            if (s === 'recibido') counts.recibido++;
+            else if (s === 'en proceso') counts.enProceso++;
+            else if (s === 'en revision' || s === 'en revisión') counts.enRevision++;
+            else if (s === 'aprobado') counts.aprobado++;
+            else if (s === 'finalizado') counts.finalizado++;
+            else if (s === 'rechazado') counts.rechazado++;
+        }
     });
+
 
     return (
         <div id="admin-screen">
@@ -922,23 +1041,16 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                         />
                                     </div>
 
-                                    <div className="sidebar-filter-pills">
-                                        {['ALL', 'Recibido', 'En Proceso', 'En Revision', 'Aprobado', 'Finalizado', 'Rechazado'].map(f => {
-                                            const count = f === 'ALL' ? tickets.length : tickets.filter(t => t.status === f).length;
-                                            let label = f;
-                                            if (f === 'ALL') label = 'Todos';
-                                            else if (f === 'En Revision') label = 'En Revisión';
-                                            
-                                            return (
-                                                <button 
-                                                    key={f}
-                                                    className={`filter-pill ${filterStatus === f ? 'active' : ''}`}
-                                                    onClick={() => setFilterStatus(f)}
-                                                >
-                                                    {label} ({count})
-                                                </button>
-                                            );
-                                        })}
+                                    {/* Filtros en dropdown: Estado + Responsable */}
+                                    <div className="sidebar-filter-dropdowns">
+                                        <CustomFilterDropdown
+                                            value={filterStatus}
+                                            onChange={setFilterStatus}
+                                        />
+                                        <CustomAssigneeFilterDropdown
+                                            value={filterAssignee}
+                                            onChange={setFilterAssignee}
+                                        />
                                     </div>
                                 </div>
 
@@ -1047,14 +1159,22 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                         {/* Detalles del ticket */}
                                         <div className="workspace-details-column">
                                             <div className="workspace-details-header">
-                                                <div className="workspace-details-header-title">
-                                                    <h3>{activeTicket.ticket_number ? `Ticket TK-${activeTicket.ticket_number}` : `Ticket #${activeTicket.id}`}</h3>
-                                                    <div className="workspace-details-header-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                                        <span><i className="fa-regular fa-clock"></i> {new Date(activeTicket.created_at).toLocaleString('es-ES')}</span>
-                                                        <span style={{ fontWeight: '600' }}><i className="fa-solid fa-hospital" style={{ color: 'var(--color-primary)' }}></i> {getPharmacyDisplayName(activeTicket.pharmacy_name)}</span>
+                                                {/* Fila 1: ID + Farmacia + Fecha */}
+                                                <div className="workspace-details-info-row">
+                                                    <div className="workspace-details-id-badge">
+                                                        {activeTicket.ticket_number ? `TK-${activeTicket.ticket_number}` : `#${activeTicket.id.substring(0,6)}`}
                                                     </div>
+                                                    <span className="workspace-details-pharmacy">
+                                                        <i className="fa-solid fa-hospital"></i>
+                                                        {getPharmacyDisplayName(activeTicket.pharmacy_name)}
+                                                    </span>
+                                                    <span className="workspace-details-date">
+                                                        <i className="fa-regular fa-clock"></i>
+                                                        {new Date(activeTicket.created_at).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}
+                                                    </span>
                                                 </div>
-                                                <div className="flex-row gap-12 align-center" style={{ flexShrink: 0 }}>
+                                                {/* Fila 2: Acciones */}
+                                                <div className="workspace-details-actions-row">
                                                     <button 
                                                         className="btn-history-pill"
                                                         onClick={() => {
@@ -1077,6 +1197,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                             <span className="btn-unread-badge"></span>
                                                         )}
                                                     </button>
+                                                    <div className="workspace-actions-divider"></div>
                                                     <CustomStatusDropdown 
                                                         value={activeTicket.status}
                                                         onChange={(val) => handleStatusChange(activeTicket.id, val)}
@@ -1246,7 +1367,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                           <span 
                                                               className={`priority-badge-pill priority-${ticket.priority.toLowerCase().replace(' ', '-')}`}
                                                               data-tooltip={`Prioridad: ${ticket.priority}`}
-                                                              data-tooltip-position={idx === 0 ? "bottom" : undefined}
+                                                              data-tooltip-position={idx === 0 ? "bottom-right-align" : "top-right-align"}
                                                           >
                                                               <i className="fa-solid fa-circle-exclamation"></i>
                                                           </span>
@@ -1255,7 +1376,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                            <span 
                                                                className="type-badge-pill" 
                                                                data-tooltip={`Categoría: ${ticket.request_type}`}
-                                                               data-tooltip-position={idx === 0 ? "bottom" : undefined}
+                                                               data-tooltip-position={idx === 0 ? "bottom-right-align" : "top-right-align"}
                                                            >
                                                                <i className={getRequestTypeIcon(ticket.request_type)}></i>
                                                            </span>
@@ -1264,7 +1385,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                            <span 
                                                                className="assignee-badge-pill" 
                                                                data-tooltip={`Encargado: ${ticket.assigned_to}`}
-                                                               data-tooltip-position={idx === 0 ? "bottom" : undefined}
+                                                               data-tooltip-position={idx === 0 ? "bottom-right-align" : "top-right-align"}
                                                                style={{ marginLeft: '4px' }}
                                                            >
                                                                <i className="fa-solid fa-user-gear"></i>
@@ -1427,6 +1548,16 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                                 >
                                                                     <i className="fa-solid fa-key"></i> Pass
                                                                 </button>
+                                                                {p.role === 'farmacia' && (
+                                                                    <button 
+                                                                        className="btn-table-action"
+                                                                        onClick={() => handleOpenContactsModal(p)}
+                                                                        title="Editar Contactos de Farmacia"
+                                                                        style={{ marginLeft: '4px' }}
+                                                                    >
+                                                                        <i className="fa-solid fa-address-book"></i> Contacto
+                                                                    </button>
+                                                                )}
                                                                 {p.id !== currentUser.id && (
                                                                     <button 
                                                                         className="btn-table-action delete"
@@ -1896,6 +2027,103 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                 Confirmar
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL: Editar Contactos de Farmacia */}
+            {isContactsModalOpen && selectedPharmacyProfile && (
+                <div className="modal-overlay" onClick={() => setIsContactsModalOpen(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+                        <button className="modal-close-btn" onClick={() => setIsContactsModalOpen(false)}>
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+                        <h3 style={{ marginBottom: '20px', fontSize: '1.3rem', fontWeight: '700' }}>
+                            <i className="fa-solid fa-address-book"></i> Contactos de Farmacia
+                        </h3>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                            Configura los nombres y correos de contacto para <strong>{getPharmacyDisplayName(selectedPharmacyProfile.username)}</strong>. Estos correos recibirán notificaciones del sistema.
+                        </p>
+                        <form onSubmit={handleSaveContacts}>
+                            <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+                                <h4 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <i className="fa-solid fa-user-shield" style={{ color: 'var(--color-warning)' }}></i> Regente / Supervisor
+                                </h4>
+                                <div className="input-group" style={{ marginBottom: '12px' }}>
+                                    <label htmlFor="regente-name">Nombre Completo</label>
+                                    <input 
+                                        id="regente-name"
+                                        type="text" 
+                                        placeholder="Nombre del Regente"
+                                        value={contactsRegenteName}
+                                        onChange={(e) => setContactsRegenteName(e.target.value)}
+                                        disabled={isSavingContacts}
+                                    />
+                                </div>
+                                <div className="input-group" style={{ marginBottom: '4px' }}>
+                                    <label htmlFor="regente-email">Correo Electrónico</label>
+                                    <input 
+                                        id="regente-email"
+                                        type="email" 
+                                        placeholder="ejemplo@puntofarma.hn"
+                                        value={contactsRegenteEmail}
+                                        onChange={(e) => setContactsRegenteEmail(e.target.value)}
+                                        disabled={isSavingContacts}
+                                    />
+                                </div>
+                            </div>
+
+                            <div style={{ paddingBottom: '12px', marginBottom: '16px' }}>
+                                <h4 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <i className="fa-solid fa-user-tie" style={{ color: 'var(--border-focus)' }}></i> Jefe de Farmacia / Tienda
+                                </h4>
+                                <div className="input-group" style={{ marginBottom: '12px' }}>
+                                    <label htmlFor="jefe-name">Nombre Completo</label>
+                                    <input 
+                                        id="jefe-name"
+                                        type="text" 
+                                        placeholder="Nombre del Jefe"
+                                        value={contactsJefeName}
+                                        onChange={(e) => setContactsJefeName(e.target.value)}
+                                        disabled={isSavingContacts}
+                                    />
+                                </div>
+                                <div className="input-group" style={{ marginBottom: '4px' }}>
+                                    <label htmlFor="jefe-email">Correo Electrónico</label>
+                                    <input 
+                                        id="jefe-email"
+                                        type="email" 
+                                        placeholder="jefe@puntofarma.hn"
+                                        value={contactsJefeEmail}
+                                        onChange={(e) => setContactsJefeEmail(e.target.value)}
+                                        disabled={isSavingContacts}
+                                    />
+                                </div>
+                            </div>
+
+                            {contactsError && (
+                                <div className="error-alert" style={{ marginTop: '12px', marginBottom: '12px' }}>
+                                    <i className="fa-solid fa-triangle-exclamation"></i>
+                                    <span>{contactsError}</span>
+                                </div>
+                            )}
+
+                            {contactsSuccess && (
+                                <div className="success-alert" style={{ marginTop: '12px', marginBottom: '12px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '10px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <i className="fa-solid fa-circle-check"></i>
+                                    <span>{contactsSuccess}</span>
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '16px', justifyContent: 'flex-end' }}>
+                                <button type="button" className="btn btn-secondary" onClick={() => setIsContactsModalOpen(false)} disabled={isSavingContacts}>
+                                    Cancelar
+                                </button>
+                                <button type="submit" className="btn btn-primary" disabled={isSavingContacts}>
+                                    <i className="fa-solid fa-floppy-disk"></i> {isSavingContacts ? 'Guardando...' : 'Guardar Contactos'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
