@@ -68,10 +68,19 @@ export default function DeliverablesPanel({ ticket, currentUser, isAdmin }) {
         }
     };
 
+    // Helper para formatear tamaño de archivo
+    const formatFileSize = (bytes) => {
+        if (!bytes) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    };
+
     // 2. Subir Entregable (Solo Administrador)
     const handleUploadDeliverable = async (e) => {
         e.preventDefault();
-        const file = fileInputRef.current?.files?.[0];
+        const file = selectedFile;
         if (!file) {
             toast.warning('Selecciona un archivo primero.');
             return;
@@ -123,6 +132,7 @@ export default function DeliverablesPanel({ ticket, currentUser, isAdmin }) {
 
             toast.success(`Entregable V${nextVersion} subido con éxito.`);
             setNote('');
+            setSelectedFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
 
             // Opcional: Insertar un mensaje de sistema en el chat informando del nuevo entregable
