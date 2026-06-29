@@ -3867,6 +3867,99 @@ button:focus-visible,
     font-weight: 600;
 }
 
+/* Card de archivo seleccionado */
+.selected-file-preview-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(99, 102, 241, 0.06);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+    animation: selectFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+[data-theme="light"] .selected-file-preview-card {
+    background: rgba(99, 102, 241, 0.04);
+    border-color: rgba(99, 102, 241, 0.15);
+}
+
+.file-info-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+}
+
+.file-icon-wrapper {
+    width: 38px;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+[data-theme="light"] .file-icon-wrapper {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.file-icon-wrapper i {
+    font-size: 1.25rem;
+}
+
+.file-icon-wrapper i.text-indigo { color: #818cf8; }
+.file-icon-wrapper i.text-red { color: #f87171; }
+.file-icon-wrapper i.text-yellow { color: #fbbf24; }
+.file-icon-wrapper i.text-gray { color: #9ca3af; }
+
+.file-meta-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.file-preview-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.file-preview-size {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.remove-file-preview-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-smooth);
+    flex-shrink: 0;
+}
+
+.remove-file-preview-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
 /* Lista */
 .deliverables-list {
     flex: 1;

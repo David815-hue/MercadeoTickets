@@ -10,6 +10,7 @@ export default function DeliverablesPanel({ ticket, currentUser, isAdmin }) {
     const [correctionNote, setCorrectionNote] = useState('');
     const [activeCorrectionId, setActiveCorrectionId] = useState(null);
     const [lightboxUrl, setLightboxUrl] = useState(null);
+    const [selectedFile, setSelectedFile] = useState(null);
     const fileInputRef = useRef(null);
 
     // 1. Cargar entregables y suscribirse a cambios en tiempo real
@@ -227,23 +228,57 @@ export default function DeliverablesPanel({ ticket, currentUser, isAdmin }) {
             {isAdmin && (
                 <form className="deliverables-upload-form" onSubmit={handleUploadDeliverable}>
                     <div className="form-group" style={{ marginBottom: '12px' }}>
-                        <label className="upload-file-label">
-                            <i className="fa-solid fa-cloud-arrow-up"></i>
-                            <span>Seleccionar Entregable Oficial</span>
-                            <input 
-                                type="file" 
-                                ref={fileInputRef}
-                                className="hidden" 
-                                required
-                                disabled={isUploading}
-                                onChange={(e) => {
-                                    const file = e.target.files[0];
-                                    if (file) {
-                                        toast.info(`Archivo seleccionado: ${file.name}`);
-                                    }
-                                }}
-                            />
-                        </label>
+                        {!selectedFile ? (
+                            <label className="upload-file-label">
+                                <i className="fa-solid fa-cloud-arrow-up"></i>
+                                <span>Seleccionar Entregable Oficial</span>
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef}
+                                    className="hidden" 
+                                    required
+                                    disabled={isUploading}
+                                    onChange={(e) => {
+                                        const file = e.target.files[0];
+                                        if (file) {
+                                            setSelectedFile(file);
+                                        }
+                                    }}
+                                />
+                            </label>
+                        ) : (
+                            <div className="selected-file-preview-card">
+                                <div className="file-info-left">
+                                    <div className="file-icon-wrapper">
+                                        {selectedFile.type.startsWith('image/') ? (
+                                            <i className="fa-solid fa-file-image text-indigo"></i>
+                                        ) : selectedFile.name.endsWith('.pdf') ? (
+                                            <i className="fa-solid fa-file-pdf text-red"></i>
+                                        ) : selectedFile.name.endsWith('.zip') || selectedFile.name.endsWith('.rar') ? (
+                                            <i className="fa-solid fa-file-zipper text-yellow"></i>
+                                        ) : (
+                                            <i className="fa-solid fa-file text-gray"></i>
+                                        )}
+                                    </div>
+                                    <div className="file-meta-details">
+                                        <div className="file-preview-name" title={selectedFile.name}>{selectedFile.name}</div>
+                                        <div className="file-preview-size">{formatFileSize(selectedFile.size)}</div>
+                                    </div>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    className="remove-file-preview-btn"
+                                    onClick={() => {
+                                        setSelectedFile(null);
+                                        if (fileInputRef.current) fileInputRef.current.value = '';
+                                    }}
+                                    disabled={isUploading}
+                                    title="Quitar archivo"
+                                >
+                                    <i className="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <div className="form-group" style={{ marginBottom: '12px' }}>
                         <input 
@@ -258,7 +293,7 @@ export default function DeliverablesPanel({ ticket, currentUser, isAdmin }) {
                     <button 
                         type="submit" 
                         className="btn btn-primary" 
-                        disabled={isUploading}
+                        disabled={isUploading || !selectedFile}
                         style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
                     >
                         {isUploading ? (
