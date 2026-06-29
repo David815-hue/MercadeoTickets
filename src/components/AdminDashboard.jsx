@@ -1117,7 +1117,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                         {ticket.request_type && (
                                                             <span className="card-badge-type">
                                                                 <i className={getRequestTypeIcon(ticket.request_type)}></i>
-                                                                {ticket.request_type.replace(' o jornadas médicas', '').substring(0, 18)}...
+                                                                {ticket.request_type.replace(' o jornadas médicas', '').replace('Activaciones/Eventos/Insumos/Utileria', 'Insumos/Utilería').substring(0, 18)}
                                                             </span>
                                                         )}
                                                         {ticket.assigned_to && ticket.assigned_to !== 'Sin asignar' && (
@@ -1973,7 +1973,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                             {[
                                 'Presupuesto',
                                 'No aplica por estrategia',
-                                'Falta de Aprobacion',
+                                'Falta de aprobación de terceros',
                                 'Otros'
                             ].map((reason) => (
                                 <label 
@@ -2000,7 +2000,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                         style={{ accentColor: 'var(--color-danger)', cursor: 'pointer' }}
                                     />
                                     <span style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: '500' }}>
-                                        {reason === 'Falta de Aprobacion' ? 'Falta de Aprobación' : reason}
+                                        {reason}
                                     </span>
                                 </label>
                             ))}

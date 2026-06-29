@@ -12,7 +12,7 @@ const CATEGORY_DURATIONS = {
     'Rotulación Interna': '3 días (Cubrecajas 10 días)',
     'Material para impresión': '10 días',
     'Recetarios Médicos': '20 días',
-    'Insumos / utilería para activaciones o jornadas médicas': '3 días'
+    'Activaciones/Eventos/Insumos/Utileria': '3 días'
 };
 
 
@@ -291,7 +291,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
             defaultData.tipoDiseno = '';
             defaultData.incluyeLogo = '';
             defaultData.otraInformacion = '';
-        } else if (requestType === 'Insumos / utilería para activaciones o jornadas médicas') {
+        } else if (requestType === 'Activaciones/Eventos/Insumos/Utileria') {
             defaultData.tipoActividad = '';
             defaultData.nombreActividad = '';
             defaultData.fechaActividad = '';
@@ -433,7 +433,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
             if (stepSpecificData.incluyeLogo === 'Si' && selectedFiles.length === 0) {
                 errors.logoRequired = true;
             }
-        } else if (requestType === 'Insumos / utilería para activaciones o jornadas médicas') {
+        } else if (requestType === 'Activaciones/Eventos/Insumos/Utileria') {
             if (!(stepSpecificData.tipoActividad || '').trim()) errors.tipoActividad = true;
             if (!(stepSpecificData.nombreActividad || '').trim()) errors.nombreActividad = true;
             if (!(stepSpecificData.fechaActividad || '').trim()) errors.fechaActividad = true;
@@ -518,7 +518,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
             return 'Angelica';
         }
         
-        if (type === 'Insumos / utilería para activaciones o jornadas médicas') {
+        if (type === 'Activaciones/Eventos/Insumos/Utileria') {
             const act = data.tipoActividad;
             if (['Activación', 'Jornada médica', 'Feria de salud', 'Evento institucional', 'Congreso'].includes(act)) {
                 return 'Yosselin';
@@ -1088,7 +1088,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                                 { id: 'Rotulación Interna', label: 'Rotulación Interna', icon: 'fa-solid fa-sheet-plastic' },
                                                 { id: 'Material para impresión', label: 'Material de Impresión', icon: 'fa-solid fa-print' },
                                                 { id: 'Recetarios Médicos', label: 'Recetarios Médicos', icon: 'fa-solid fa-file-medical' },
-                                                { id: 'Insumos / utilería para activaciones o jornadas médicas', label: 'Insumos / Utilería', icon: 'fa-solid fa-kit-medical' },
+                                                { id: 'Activaciones/Eventos/Insumos/Utileria', label: 'Activaciones/Eventos/Insumos/Utileria', icon: 'fa-solid fa-kit-medical' },
                                                 { id: 'Rotulación Externa', label: 'Rotulación Externa', icon: 'fa-solid fa-store' }
                                             ].map(cat => (
                                                 <div
@@ -1497,7 +1497,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                         </>
                                     )}
 
-                                    {requestType === 'Insumos / utilería para activaciones o jornadas médicas' && (
+                                    {requestType === 'Activaciones/Eventos/Insumos/Utileria' && (
                                         <>
                                             <div className="input-group">
                                                 <label htmlFor="tipo-actividad">
@@ -1778,7 +1778,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                     )}
 
                                     {/* Zona de Carga de Archivos */}
-                                    {requestType !== 'Insumos / utilería para activaciones o jornadas médicas' && 
+                                    {requestType !== 'Activaciones/Eventos/Insumos/Utileria' && 
                                      requestType !== 'Rotulación Interna' && 
                                      requestType !== 'Material para impresión' && (
                                         <div className="input-group" style={{ marginTop: '20px' }}>
