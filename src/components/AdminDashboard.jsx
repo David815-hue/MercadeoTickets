@@ -1292,6 +1292,43 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                         </div>
                     )}
 
+                    {/* Barra de filtro de gestora para Kanban */}
+                    {viewType === 'kanban' && (
+                        <div className="kanban-filter-bar">
+                            <span className="kanban-filter-label">
+                                <i className="fa-solid fa-filter"></i> Gestora
+                            </span>
+                            <div className="kanban-filter-pills">
+                                {[
+                                    { value: 'ALL', label: 'Todas', icon: 'fa-users' },
+                                    { value: 'Yarleny',   label: 'Yarleny',   color: '#a855f7' },
+                                    { value: 'Angelica',  label: 'Angelica',  color: '#0ea5e9' },
+                                    { value: 'Yosselin',  label: 'Yosselin',  color: '#ec4899' },
+                                    { value: 'Emma',      label: 'Emma',      color: '#3b82f6' },
+                                    { value: 'Sin asignar', label: 'Sin asignar', color: '#64748b' },
+                                ].map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        className={`kanban-filter-pill ${filterAssignee === opt.value ? 'active' : ''}`}
+                                        onClick={() => setFilterAssignee(opt.value)}
+                                        style={filterAssignee === opt.value && opt.color ? {
+                                            background: opt.color,
+                                            borderColor: opt.color,
+                                            color: '#fff',
+                                            boxShadow: `0 0 12px ${opt.color}55`
+                                        } : {}}
+                                    >
+                                        {opt.icon
+                                            ? <i className={`fa-solid ${opt.icon}`}></i>
+                                            : <span className="kanban-pill-avatar" style={{ background: opt.color }}>{opt.label.charAt(0)}</span>
+                                        }
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Listado en estilo tarjetas modernas */}
                     {viewType === 'kanban' && (
                         <KanbanBoard 
