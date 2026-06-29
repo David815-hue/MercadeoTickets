@@ -564,6 +564,7 @@ input[type="text"],
 input[type="password"],
 input[type="url"],
 input[type="email"],
+input[type="date"],
 select,
 textarea {
     width: 100%;
@@ -576,6 +577,24 @@ textarea {
     font-size: 0.95rem;
     transition: var(--transition-smooth);
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilo personalizado para el selector de fecha y su icono de calendario */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 4px;
+    transition: var(--transition-smooth);
+    opacity: 0.7;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    background-color: rgba(99, 102, 241, 0.12);
+}
+
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.9);
 }
 
 input:focus,
