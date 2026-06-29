@@ -96,7 +96,7 @@ export default function Login({ onLoginSuccess, currentTheme, onToggleTheme }) {
                         <input 
                             type="text" 
                             id="login-username" 
-                            placeholder="Ej: PFH001 o admin" 
+                            placeholder="" 
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required 

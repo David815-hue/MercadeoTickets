@@ -753,7 +753,12 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
 
                 {/* Título Central */}
                 <div className="header-title-pill">
-                    <h1>Panel de Administración</h1>
+                    <h1>
+                        {viewType === 'list' && 'Panel de Lista'}
+                        {viewType === 'kanban' && 'Vista Kanban'}
+                        {viewType === 'workspace' && 'Vista de Trabajo'}
+                        {viewType === 'users' && 'Gestión de Usuarios'}
+                    </h1>
                 </div>
 
                 {/* Pill Derecho: DB Status + Toggle Tema + Logout */}
