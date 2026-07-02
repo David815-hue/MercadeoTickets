@@ -92,6 +92,25 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Auto-abrir ticket si viene en la URL (?ticket=ID)
+    useEffect(() => {
+        if (tickets.length > 0) {
+            const params = new URLSearchParams(window.location.search);
+            const ticketId = params.get('ticket');
+            if (ticketId) {
+                const foundTicket = tickets.find(t => t.id === ticketId);
+                if (foundTicket) {
+                    setSelectedDetailTicket(foundTicket);
+                    setIsDetailModalOpen(true);
+                    
+                    // Limpiar el query param de la URL
+                    const newUrl = window.location.pathname;
+                    window.history.replaceState({}, document.title, newUrl);
+                }
+            }
+        }
+    }, [tickets]);
+
     // Actualizar última conexión en base de datos
     useEffect(() => {
         const updateLastSeen = async () => {

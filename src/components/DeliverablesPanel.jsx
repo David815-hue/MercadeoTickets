@@ -418,7 +418,7 @@ export default function DeliverablesPanel({ ticket, currentUser, isAdmin }) {
                                         </div>
                                         {hasRequestedCorrections && (
                                             <div style={{ fontSize: '0.72rem', color: 'var(--color-danger)', marginTop: '4px', textAlign: 'center', fontWeight: 500 }}>
-                                                <i className="fa-solid fa-circle-info"></i> Límite de 1 ajuste por ticket alcanzado. Comunícate por chat si requieres cambios adicionales.
+                                                <i className="fa-solid fa-circle-info"></i> Límite de 1 ajuste por ticket alcanzado.
                                             </div>
                                         )}
                                     </div>
