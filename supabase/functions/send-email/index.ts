@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
                     <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                       <tr>
                         <td align="center" bgcolor="#4f46e5" style="border-radius: 8px; padding: 12px 30px;">
-                          <a href="https://ticket-system.vercel.app/" target="_blank" style="font-size: 15px; font-weight: bold; color: #ffffff; text-decoration: none; display: block; font-family: 'Segoe UI', Helvetica, Arial, sans-serif;">Ver Ticket y Responder</a>
+                          <a href="https://mercadeo-tickets.vercel.app/" target="_blank" style="font-size: 15px; font-weight: bold; color: #ffffff; text-decoration: none; display: block; font-family: 'Segoe UI', Helvetica, Arial, sans-serif;">Ver Ticket y Responder</a>
                         </td>
                       </tr>
                     </table>
@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
                     <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                       <tr>
                         <td align="center" bgcolor="#4f46e5" style="border-radius: 8px; padding: 12px 30px;">
-                          <a href="https://ticket-system.vercel.app/" target="_blank" style="font-size: 15px; font-weight: bold; color: #ffffff; text-decoration: none; display: block; font-family: 'Segoe UI', Helvetica, Arial, sans-serif;">Revisar en el Sistema</a>
+                          <a href="https://mercadeo-tickets.vercel.app/" target="_blank" style="font-size: 15px; font-weight: bold; color: #ffffff; text-decoration: none; display: block; font-family: 'Segoe UI', Helvetica, Arial, sans-serif;">Revisar en el Sistema</a>
                         </td>
                       </tr>
                     </table>

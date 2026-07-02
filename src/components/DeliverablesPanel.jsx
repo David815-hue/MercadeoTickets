@@ -12,6 +12,7 @@ export default function DeliverablesPanel({ ticket, currentUser, isAdmin }) {
     const [lightboxUrl, setLightboxUrl] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const fileInputRef = useRef(null);
+    const hasRequestedCorrections = deliverables.some(d => d.status === 'Con Correcciones');
 
     // 1. Cargar entregables y suscribirse a cambios en tiempo real
     useEffect(() => {
@@ -181,6 +182,11 @@ export default function DeliverablesPanel({ ticket, currentUser, isAdmin }) {
     // 4. Rechazar/Solicitar cambios (Farmacia)
     const handleRequestCorrections = async (e, id, version, name) => {
         e.preventDefault();
+        if (hasRequestedCorrections) {
+            toast.error('Límite de ajustes alcanzado. Solo se permite 1 solicitud de ajustes por ticket.');
+            return;
+        }
+
         if (!correctionNote.trim()) {
             toast.warning('Por favor especifica las correcciones necesarias.');
             return;
@@ -380,24 +386,41 @@ export default function DeliverablesPanel({ ticket, currentUser, isAdmin }) {
 
                                 {/* Acciones exclusivas de la Farmacia cuando el entregable está Pendiente */}
                                 {!isAdmin && item.status === 'Pendiente' && (
-                                    <div className="farmacia-decision-btns" style={{ display: 'flex', width: '100%', gap: '8px', marginTop: '8px' }}>
-                                        <button 
-                                            onClick={() => handleApprove(item.id, item.version, item.file_name)}
-                                            className="btn btn-success btn-sm" 
-                                            style={{ flex: 1, display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}
-                                        >
-                                            <i className="fa-solid fa-check"></i> Aprobar
-                                        </button>
-                                        <button 
-                                            onClick={() => {
-                                                setActiveCorrectionId(activeCorrectionId === item.id ? null : item.id);
-                                                setCorrectionNote('');
-                                            }}
-                                            className="btn btn-danger btn-sm"
-                                            style={{ flex: 1, display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}
-                                        >
-                                            <i className="fa-solid fa-triangle-exclamation"></i> Ajustes
-                                        </button>
+                                    <div className="farmacia-decision-btns" style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: '8px', marginTop: '8px' }}>
+                                        <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
+                                            <button 
+                                                onClick={() => handleApprove(item.id, item.version, item.file_name)}
+                                                className="btn btn-success btn-sm" 
+                                                style={{ flex: 1, display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}
+                                            >
+                                                <i className="fa-solid fa-check"></i> Aprobar
+                                            </button>
+                                            <button 
+                                                onClick={() => {
+                                                    setActiveCorrectionId(activeCorrectionId === item.id ? null : item.id);
+                                                    setCorrectionNote('');
+                                                }}
+                                                className="btn btn-danger btn-sm"
+                                                disabled={hasRequestedCorrections}
+                                                title={hasRequestedCorrections ? "Ya has solicitado ajustes una vez para este ticket." : "Solicitar ajustes"}
+                                                style={{ 
+                                                    flex: 1, 
+                                                    display: 'inline-flex', 
+                                                    justifyContent: 'center', 
+                                                    alignItems: 'center', 
+                                                    gap: '4px',
+                                                    opacity: hasRequestedCorrections ? 0.5 : 1,
+                                                    cursor: hasRequestedCorrections ? 'not-allowed' : 'pointer'
+                                                }}
+                                            >
+                                                <i className="fa-solid fa-triangle-exclamation"></i> Ajustes {hasRequestedCorrections && "(Límite)"}
+                                            </button>
+                                        </div>
+                                        {hasRequestedCorrections && (
+                                            <div style={{ fontSize: '0.72rem', color: 'var(--color-danger)', marginTop: '4px', textAlign: 'center', fontWeight: 500 }}>
+                                                <i className="fa-solid fa-circle-info"></i> Límite de 1 ajuste por ticket alcanzado. Comunícate por chat si requieres cambios adicionales.
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
