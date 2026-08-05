@@ -13,18 +13,29 @@ export default function Login({ onLoginSuccess, currentTheme, onToggleTheme }) {
         setErrorMsg('');
 
         try {
-            // Mapeo automático de Username a Email para Supabase Auth
-            const email = username.includes('@') 
-                ? username 
-                : (username.toLowerCase().startsWith('admin') 
-                    ? 'admin@system.com' 
-                    : `${username.toLowerCase()}@farmacia.com`);
+            const cleanUser = username.trim().toLowerCase();
+            let email = cleanUser.includes('@') 
+                ? cleanUser 
+                : `${cleanUser}@farmacia.com`;
 
             // Autenticar en Supabase
-            const { data, error } = await supabase.auth.signInWithPassword({
+            let { data, error } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: password
             });
+
+            // Si falló el login y el usuario no especificó un dominio (@), intentar con el dominio de sistema (@system.com) para administradores (ej: mercadeo, admin, etc.)
+            if (error && !cleanUser.includes('@')) {
+                const systemEmail = `${cleanUser}@system.com`;
+                const resSystem = await supabase.auth.signInWithPassword({
+                    email: systemEmail,
+                    password: password
+                });
+                if (!resSystem.error) {
+                    data = resSystem.data;
+                    error = null;
+                }
+            }
 
             if (error) throw error;
 

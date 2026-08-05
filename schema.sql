@@ -57,7 +57,7 @@ USING (auth.uid() = id);
 CREATE POLICY "Permitir a los administradores leer todos los perfiles" 
 ON public.profiles FOR SELECT 
 USING (
-    (auth.jwt() ->> 'email') LIKE 'admin%'
+    (auth.jwt() ->> 'email') LIKE '%@system.com'
 );
 
 -- POLÍTICAS PARA TICKETS
@@ -65,32 +65,32 @@ CREATE POLICY "Ver tickets"
 ON public.tickets FOR SELECT 
 USING (
     user_id = auth.uid() OR 
-    (auth.jwt() ->> 'email') LIKE 'admin%'
+    (auth.jwt() ->> 'email') LIKE '%@system.com'
 );
 
 CREATE POLICY "Crear tickets" 
 ON public.tickets FOR INSERT 
 WITH CHECK (
     user_id = auth.uid() AND
-    (auth.jwt() ->> 'email') NOT LIKE 'admin%'
+    (auth.jwt() ->> 'email') NOT LIKE '%@system.com'
 );
 
 CREATE POLICY "Actualizar tickets" 
 ON public.tickets FOR UPDATE 
 USING (
-    (auth.jwt() ->> 'email') LIKE 'admin%'
+    (auth.jwt() ->> 'email') LIKE '%@system.com'
 )
 WITH CHECK (
-    (auth.jwt() ->> 'email') LIKE 'admin%'
+    (auth.jwt() ->> 'email') LIKE '%@system.com'
 );
 
 CREATE POLICY "Actualizar tickets propios (farmacia)" 
 ON public.tickets FOR UPDATE 
 USING (
-    user_id = auth.uid() AND (auth.jwt() ->> 'email') NOT LIKE 'admin%' AND status = 'Recibido'
+    user_id = auth.uid() AND (auth.jwt() ->> 'email') NOT LIKE '%@system.com' AND status = 'Recibido'
 )
 WITH CHECK (
-    user_id = auth.uid() AND (auth.jwt() ->> 'email') NOT LIKE 'admin%' AND status = 'Recibido'
+    user_id = auth.uid() AND (auth.jwt() ->> 'email') NOT LIKE '%@system.com' AND status = 'Recibido'
 );
 
 -- POLÍTICAS PARA MENSAJES (CHAT)
@@ -99,7 +99,7 @@ ON public.messages FOR SELECT
 USING (
     EXISTS (
         SELECT 1 FROM public.tickets 
-        WHERE id = ticket_id AND (user_id = auth.uid() OR (auth.jwt() ->> 'email') LIKE 'admin%')
+        WHERE id = ticket_id AND (user_id = auth.uid() OR (auth.jwt() ->> 'email') LIKE '%@system.com')
     )
 );
 
@@ -109,7 +109,7 @@ WITH CHECK (
     sender_id = auth.uid() AND
     EXISTS (
         SELECT 1 FROM public.tickets 
-        WHERE id = ticket_id AND (user_id = auth.uid() OR (auth.jwt() ->> 'email') LIKE 'admin%')
+        WHERE id = ticket_id AND (user_id = auth.uid() OR (auth.jwt() ->> 'email') LIKE '%@system.com')
     )
 );
 
@@ -124,7 +124,7 @@ DECLARE
 BEGIN
     username_val := UPPER(split_part(new.email, '@', 1));
     
-    IF new.email LIKE 'admin%' THEN
+    IF new.email LIKE '%@system.com' THEN
         role_val := 'admin';
     ELSE
         role_val := 'farmacia';
@@ -258,11 +258,11 @@ CREATE POLICY "Permitir actualizar perfiles"
 ON public.profiles FOR UPDATE
 USING (
     auth.uid() = id OR 
-    (auth.jwt() ->> 'email') LIKE 'admin%'
+    (auth.jwt() ->> 'email') LIKE '%@system.com'
 )
 WITH CHECK (
     auth.uid() = id OR 
-    (auth.jwt() ->> 'email') LIKE 'admin%'
+    (auth.jwt() ->> 'email') LIKE '%@system.com'
 );
 
 -- 3. Función para crear usuarios (Security Definer)
@@ -474,7 +474,7 @@ ON public.ticket_history FOR SELECT
 USING (
     EXISTS (
         SELECT 1 FROM public.tickets 
-        WHERE id = ticket_id AND (user_id = auth.uid() OR (auth.jwt() ->> 'email') LIKE 'admin%')
+        WHERE id = ticket_id AND (user_id = auth.uid() OR (auth.jwt() ->> 'email') LIKE '%@system.com')
     )
 );
 
@@ -609,7 +609,7 @@ USING (true);
 DROP POLICY IF EXISTS "Permitir actualizar contactos a administradores" ON public.pharmacy_contacts;
 CREATE POLICY "Permitir actualizar contactos a administradores" 
 ON public.pharmacy_contacts FOR UPDATE 
-USING ( (auth.jwt() ->> 'email') LIKE 'admin%' );
+USING ( (auth.jwt() ->> 'email') LIKE '%@system.com' );
 
 DROP POLICY IF EXISTS "Permitir insertar contactos a todos" ON public.pharmacy_contacts;
 CREATE POLICY "Permitir insertar contactos a todos" 
