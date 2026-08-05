@@ -163,7 +163,7 @@ function KanbanCard({ ticket, onOpenDetails, isUnread }) {
                     const COLORS = {
                         'Yarleny':  '#a855f7',
                         'Angelica': '#0ea5e9',
-                        'Yosselin': '#ec4899',
+                        'Yoselyn':  '#ec4899',
                         'Emma':     '#3b82f6',
                     };
                     const bg = COLORS[ticket.assigned_to] || '#6366f1';

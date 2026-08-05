@@ -71,8 +71,7 @@ USING (
 CREATE POLICY "Crear tickets" 
 ON public.tickets FOR INSERT 
 WITH CHECK (
-    user_id = auth.uid() AND
-    (auth.jwt() ->> 'email') NOT LIKE '%@system.com'
+    user_id = auth.uid()
 );
 
 CREATE POLICY "Actualizar tickets" 

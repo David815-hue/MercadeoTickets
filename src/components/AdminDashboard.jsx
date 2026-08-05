@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import FormSelect from './FormSelect';
 import SlaProgressBar from './SlaProgressBar';
 import AuditLogModal from './AuditLogModal';
+import CreateTicketModal from './CreateTicketModal';
 import { getPharmacyDisplayName } from '../utils/pharmacyMap';
 
 
@@ -23,6 +24,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [activeTicket, setActiveTicket] = useState(null);
     const [unreadTicketIds, setUnreadTicketIds] = useState(new Set());
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [expandedTicketId, setExpandedTicketId] = useState(null);
     const [dbStatus, setDbStatus] = useState(null);
@@ -87,6 +89,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
 
     useEffect(() => {
         loadTickets();
+        loadProfiles();
         fetchDbSize();
         runAutoCleanup();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1306,13 +1309,37 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                             <div className="capsule-divider"></div>
 
                             <CustomFilterDropdown 
-                                                                value={filterStatus}
-                                                                onChange={setFilterStatus}
-                                                            />
-                                                            <CustomAssigneeFilterDropdown 
-                                                                value={filterAssignee}
-                                                                onChange={setFilterAssignee}
-                                                            />
+                                value={filterStatus}
+                                onChange={setFilterStatus}
+                            />
+                            <CustomAssigneeFilterDropdown 
+                                value={filterAssignee}
+                                onChange={setFilterAssignee}
+                            />
+
+                            <div className="capsule-divider"></div>
+
+                            <button
+                                className="btn btn-primary"
+                                style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    padding: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.9rem',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)',
+                                    flexShrink: 0
+                                }}
+                                onClick={() => setIsCreateModalOpen(true)}
+                                title="Crear Nueva Solicitud"
+                                aria-label="Crear Nueva Solicitud"
+                            >
+                                <i className="fa-solid fa-plus"></i>
+                            </button>
                         </div>
                     )}
 
@@ -1327,7 +1354,7 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                     { value: 'ALL', label: 'Todas', icon: 'fa-users' },
                                     { value: 'Yarleny',   label: 'Yarleny',   color: '#a855f7' },
                                     { value: 'Angelica',  label: 'Angelica',  color: '#0ea5e9' },
-                                    { value: 'Yosselin',  label: 'Yosselin',  color: '#ec4899' },
+                                    { value: 'Yoselyn',   label: 'Yoselyn',   color: '#ec4899' },
                                     { value: 'Emma',      label: 'Emma',      color: '#3b82f6' },
                                     { value: 'Sin asignar', label: 'Sin asignar', color: '#64748b' },
                                 ].map(opt => (
@@ -1350,6 +1377,29 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                     </button>
                                 ))}
                             </div>
+
+                            <button
+                                className="btn btn-primary"
+                                style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    padding: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.9rem',
+                                    marginLeft: 'auto',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 2px 8px rgba(99, 102, 241, 0.35)',
+                                    flexShrink: 0
+                                }}
+                                onClick={() => setIsCreateModalOpen(true)}
+                                title="Crear Nueva Solicitud"
+                                aria-label="Crear Nueva Solicitud"
+                            >
+                                <i className="fa-solid fa-plus"></i>
+                            </button>
                         </div>
                     )}
 
@@ -2202,6 +2252,15 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                     </div>
                 </div>
             )}
+
+            {/* Modal de Creación de Ticket (Independiente) */}
+            <CreateTicketModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                currentUser={currentUser}
+                onTicketCreated={loadTickets}
+                pharmaciesList={profiles.map(p => p.username)}
+            />
         </div>
     );
 }

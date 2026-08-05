@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 const ASSIGNEE_COLORS = {
     'Yarleny':    { bg: '#a855f7', text: '#fff' },
     'Angelica':   { bg: '#0ea5e9', text: '#fff' },
-    'Yosselin':   { bg: '#ec4899', text: '#fff' },
+    'Yoselyn':    { bg: '#ec4899', text: '#fff' },
     'Emma':       { bg: '#3b82f6', text: '#fff' },
     'Sin asignar':{ bg: '#64748b', text: '#fff' },
     'ALL':        { bg: 'var(--color-primary)', text: '#fff' },
@@ -61,7 +61,7 @@ export default function CustomAssigneeFilterDropdown({ value, onChange }) {
         { value: 'ALL',          label: 'Todos los encargados' },
         { value: 'Yarleny',      label: 'Yarleny' },
         { value: 'Angelica',     label: 'Angelica' },
-        { value: 'Yosselin',     label: 'Yosselin' },
+        { value: 'Yoselyn',      label: 'Yoselyn' },
         { value: 'Emma',         label: 'Emma' },
         { value: 'Sin asignar',  label: 'Sin asignar' },
     ];

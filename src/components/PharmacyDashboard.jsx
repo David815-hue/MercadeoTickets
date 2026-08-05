@@ -526,11 +526,11 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         }
         
         if (type === 'Rotulación Interna') {
-            return 'Yosselin';
+            return 'Yoselyn';
         }
         
         if (type === 'Material para impresión') {
-            return 'Yosselin';
+            return 'Yoselyn';
         }
         
         if (type === 'Recetarios Médicos') {
@@ -540,9 +540,9 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
         if (type === 'Activaciones/Eventos/Insumos/Utileria') {
             const act = data.tipoActividad;
             if (['Activación', 'Jornada médica', 'Feria de salud', 'Evento institucional', 'Congreso'].includes(act)) {
-                return 'Yosselin';
+                return 'Yoselyn';
             }
-            return 'Yosselin';
+            return 'Yoselyn';
         }
         
         if (type === 'Rotulación Externa') {
