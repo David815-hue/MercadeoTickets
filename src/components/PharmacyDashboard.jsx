@@ -433,7 +433,9 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
             if (!(stepSpecificData.informacionMaterial || '').trim()) errors.informacionMaterial = true;
         } else if (requestType === 'Rotulación Interna') {
             if (!(stepSpecificData.tipoRotulacion || '').trim()) errors.tipoRotulacion = true;
-            if (!(stepSpecificData.medidas || '').trim()) errors.medidas = true;
+            if (['Cubre Caja', 'Puerta Mesón', 'Sticker'].includes(stepSpecificData.tipoRotulacion) && !(stepSpecificData.medidas || '').trim()) {
+                errors.medidas = true;
+            }
             if (!(stepSpecificData.detalleTexto || '').trim()) errors.detalleTexto = true;
         } else if (requestType === 'Material para impresión') {
             if (!(stepSpecificData.tipoMaterialImpreso || '').trim()) errors.tipoMaterialImpreso = true;

@@ -36,6 +36,28 @@ export default function App() {
                     localStorage.removeItem('ticket_system_session');
                 }
             }
+
+            // 3. Sincronizar sesión activa de Supabase Auth
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (session) {
+                    supabase
+                        .from('profiles')
+                        .select('username, role')
+                        .eq('id', session.user.id)
+                        .single()
+                        .then(({ data: profile }) => {
+                            if (profile) {
+                                const userObj = {
+                                    id: session.user.id,
+                                    username: profile.username,
+                                    role: profile.role
+                                };
+                                setCurrentUser(userObj);
+                                localStorage.setItem('ticket_system_session', JSON.stringify(userObj));
+                            }
+                        });
+                }
+            });
         }
         setLoading(false);
     }, []);
