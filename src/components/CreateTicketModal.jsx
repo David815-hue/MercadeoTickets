@@ -22,17 +22,81 @@ export default function CreateTicketModal({ isOpen, onClose, currentUser, onTick
     const [stepSpecificData, setStepSpecificData] = useState({});
     const [validationErrors, setValidationErrors] = useState({});
     
-    // Adjuntos del Paso 2
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [fileUploadProgresses, setFileUploadProgresses] = useState({});
     const fileInputRef = useRef(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDraftRestored, setIsDraftRestored] = useState(false);
+
+    const DRAFT_KEY = 'ticket_wizard_draft_admin';
+    const DRAFT_TTL_MS = 30 * 60 * 1000; // 30 minutos
+
+    // Cargar borrador al abrir el modal
+    useEffect(() => {
+        if (!isOpen) return;
+        try {
+            const rawDraft = sessionStorage.getItem(DRAFT_KEY);
+            if (rawDraft) {
+                const draft = JSON.parse(rawDraft);
+                const isFresh = (Date.now() - (draft.timestamp || 0)) < DRAFT_TTL_MS;
+                const hasContent = Boolean(
+                    draft.ticketObjective?.trim() || 
+                    draft.requestType || 
+                    Object.values(draft.stepSpecificData || {}).some(v => v && String(v).trim() !== '')
+                );
+
+                if (isFresh && hasContent) {
+                    if (draft.wizardStep) setWizardStep(draft.wizardStep);
+                    if (draft.selectedPharmacy && currentUser?.role === 'admin') setSelectedPharmacy(draft.selectedPharmacy);
+                    if (draft.requesterRole) setRequesterRole(draft.requesterRole);
+                    if (draft.ticketPriority) setTicketPriority(draft.ticketPriority);
+                    if (draft.ticketObjective) setTicketObjective(draft.ticketObjective);
+                    if (draft.ticketAdditionalInfo) setTicketAdditionalInfo(draft.ticketAdditionalInfo);
+                    if (draft.requestType) setRequestType(draft.requestType);
+                    if (draft.stepSpecificData) setStepSpecificData(draft.stepSpecificData);
+                    setIsDraftRestored(true);
+                } else {
+                    sessionStorage.removeItem(DRAFT_KEY);
+                }
+            }
+        } catch (e) {
+            sessionStorage.removeItem(DRAFT_KEY);
+        }
+    }, [isOpen]);
+
+    // Guardar borrador automáticamente
+    useEffect(() => {
+        if (!isOpen) return;
+        const hasContent = Boolean(
+            ticketObjective.trim() || 
+            ticketAdditionalInfo.trim() || 
+            requestType || 
+            Object.values(stepSpecificData).some(v => v && String(v).trim() !== '')
+        );
+
+        if (hasContent) {
+            const draftObj = {
+                timestamp: Date.now(),
+                wizardStep,
+                selectedPharmacy,
+                requesterRole,
+                ticketPriority,
+                ticketObjective,
+                ticketAdditionalInfo,
+                requestType,
+                stepSpecificData
+            };
+            sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draftObj));
+        }
+    }, [isOpen, wizardStep, selectedPharmacy, requesterRole, ticketPriority, ticketObjective, ticketAdditionalInfo, requestType, stepSpecificData]);
 
     if (!isOpen) return null;
 
     const resetForm = () => {
+        sessionStorage.removeItem(DRAFT_KEY);
+        setIsDraftRestored(false);
         setWizardStep(1);
-        setSelectedPharmacy(currentUser.role === 'admin' ? 'MERCADEO' : currentUser.username);
+        setSelectedPharmacy(currentUser?.role === 'admin' ? 'MERCADEO' : currentUser?.username || '');
         setRequesterRole('Jefe de Tienda');
         setTicketPriority('Sin prioridad');
         setTicketObjective('');
@@ -44,8 +108,11 @@ export default function CreateTicketModal({ isOpen, onClose, currentUser, onTick
         setValidationErrors({});
     };
 
-    const handleClose = () => {
+    const discardDraft = () => {
         resetForm();
+    };
+
+    const handleClose = () => {
         onClose();
     };
 
@@ -415,6 +482,41 @@ export default function CreateTicketModal({ isOpen, onClose, currentUser, onTick
                 <h3 style={{ marginBottom: '20px', fontSize: '1.3rem', fontWeight: '700' }}>
                     <i className="fa-solid fa-circle-plus"></i> Crear Solicitud de Mercadeo
                 </h3>
+
+                {isDraftRestored && (
+                    <div style={{
+                        background: 'rgba(99, 102, 241, 0.08)',
+                        border: '1px solid rgba(99, 102, 241, 0.25)',
+                        borderRadius: '10px',
+                        padding: '10px 14px',
+                        marginBottom: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '0.84rem',
+                        color: 'var(--color-primary)'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <i className="fa-solid fa-clock-rotate-left"></i>
+                            <span>Se restauró tu borrador no enviado.</span>
+                        </div>
+                        <button
+                            type="button"
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--color-danger)',
+                                fontSize: '0.8rem',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                textDecoration: 'underline'
+                            }}
+                            onClick={discardDraft}
+                        >
+                            Descartar borrador
+                        </button>
+                    </div>
+                )}
 
                 {/* Stepper */}
                 <div className="wizard-stepper">
