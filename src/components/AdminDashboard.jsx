@@ -12,6 +12,7 @@ import FormSelect from './FormSelect';
 import SlaProgressBar from './SlaProgressBar';
 import AuditLogModal from './AuditLogModal';
 import CreateTicketModal from './CreateTicketModal';
+import AssigneeRulesPage from './AssigneeRulesPage';
 import { getPharmacyDisplayName } from '../utils/pharmacyMap';
 import StickyNotesManager from './StickyNotesManager';
 
@@ -26,16 +27,17 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [unreadTicketIds, setUnreadTicketIds] = useState(new Set());
     const [isChatModalOpen, setIsChatModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [expandedTicketId, setExpandedTicketId] = useState(null);
     const [dbStatus, setDbStatus] = useState(null);
     const [viewType, setViewType] = useState(() => {
         const saved = localStorage.getItem('admin_view_type');
-        return (saved && saved !== 'users') ? saved : 'list';
+        return (saved && saved !== 'users' && saved !== 'assignments') ? saved : 'list';
     });
 
     useEffect(() => {
-        if (viewType !== 'users') {
+        if (viewType !== 'users' && viewType !== 'assignments') {
             localStorage.setItem('admin_view_type', viewType);
         }
     }, [viewType]);
@@ -784,13 +786,14 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                         {viewType === 'kanban' && 'Vista Kanban'}
                         {viewType === 'workspace' && 'Vista de Trabajo'}
                         {viewType === 'users' && 'Gestión de Usuarios'}
+                        {viewType === 'assignments' && 'Reglas de Asignación'}
                     </h1>
                 </div>
 
                 {/* Pill Derecho: DB Status + Toggle Tema + Logout */}
                 <div className="header-controls-pill">
                     {/* Toggle de Vista: Lista / Kanban / Usuarios */}
-                    {viewType !== 'users' ? (
+                    {(viewType !== 'users' && viewType !== 'assignments') ? (
                         <div className="view-toggle-segmented">
                             <button
                                 className={`view-toggle-btn ${viewType === 'list' ? 'active' : ''}`}
@@ -827,6 +830,16 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                             <i className="fa-solid fa-arrow-left"></i> Solicitudes
                         </button>
                     )}
+
+                    <button
+                        className="btn btn-secondary btn-icon-only"
+                        style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', flexShrink: 0 }}
+                        onClick={() => setIsRulesModalOpen(true)}
+                        title="Configurar Asignaciones Automáticas"
+                        aria-label="Configurar Asignaciones Automáticas"
+                    >
+                        <i className="fa-solid fa-sliders"></i>
+                    </button>
 
                     <div className="header-divider"></div>
 
@@ -967,6 +980,15 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                     }}
                                 >
                                     <i className="fa-solid fa-users-gear"></i> Gestionar Usuarios
+                                </button>
+                                <button 
+                                    className="user-menu-item"
+                                    onClick={() => {
+                                        setViewType('assignments');
+                                        setIsUserMenuOpen(false);
+                                    }}
+                                >
+                                    <i className="fa-solid fa-sliders"></i> Reglas de Asignación
                                 </button>
                                 <button 
                                     className="user-menu-item logout"
@@ -1888,6 +1910,10 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                 )}
                             </div>
                         </div>
+                    )}
+
+                    {viewType === 'assignments' && (
+                        <AssigneeRulesPage onBack={() => setViewType('list')} />
                     )}
                     </div>
                 )}

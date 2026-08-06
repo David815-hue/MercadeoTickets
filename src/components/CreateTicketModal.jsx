@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { toast } from 'sonner';
 import FormSelect from './FormSelect';
+import { fetchAssigneeRules, determineAssigneeWithRules } from '../utils/assigneeHelper';
 
 const CATEGORY_DURATIONS = {
     'Artes Digital': '5 días',
@@ -27,6 +28,13 @@ export default function CreateTicketModal({ isOpen, onClose, currentUser, onTick
     const fileInputRef = useRef(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDraftRestored, setIsDraftRestored] = useState(false);
+    const [assigneeRules, setAssigneeRules] = useState(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchAssigneeRules().then(rules => setAssigneeRules(rules));
+        }
+    }, [isOpen]);
 
     const DRAFT_KEY = 'ticket_wizard_draft_admin';
     const DRAFT_TTL_MS = 30 * 60 * 1000; // 30 minutos
@@ -398,7 +406,7 @@ export default function CreateTicketModal({ isOpen, onClose, currentUser, onTick
                     additional_info: ticketAdditionalInfo.trim(),
                     form_data: stepSpecificData,
                     attachments: [],
-                    assigned_to: determineAssignee(requestType, stepSpecificData)
+                    assigned_to: determineAssigneeWithRules(requestType, stepSpecificData, assigneeRules)
                 })
                 .select()
                 .single();

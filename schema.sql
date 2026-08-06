@@ -6,12 +6,23 @@
 -- 1. Habilitar extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. Crear tabla de perfiles (roles y nombres de farmacia)
-CREATE TABLE public.profiles (
-    id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
-    username TEXT NOT NULL UNIQUE,
-    role TEXT NOT NULL CHECK (role IN ('farmacia', 'admin')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+-- TABLA DE PERFILES DE USUARIOS
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('farmacia', 'admin')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- TABLA DE REGLAS DE ASIGNACIÓN AUTOMÁTICA POR CATEGORÍA
+CREATE TABLE IF NOT EXISTS public.category_assignees (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    category VARCHAR(100) NOT NULL,
+    sub_category VARCHAR(100) DEFAULT '',
+    assigned_to VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT unique_category_sub UNIQUE (category, sub_category)
 );
 
 -- Habilitar RLS en profiles

@@ -6,6 +6,7 @@ import FormSelect from './FormSelect';
 import SlaProgressBar from './SlaProgressBar';
 import AuditLogModal from './AuditLogModal';
 import { getPharmacyDisplayName } from '../utils/pharmacyMap';
+import { fetchAssigneeRules, determineAssigneeWithRules } from '../utils/assigneeHelper';
 
 const CATEGORY_DURATIONS = {
     'Artes Digital': '5 días',
@@ -504,6 +505,13 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
     const DRAFT_KEY_PHARMACY = 'ticket_wizard_draft_pharmacy';
     const DRAFT_TTL_MS = 30 * 60 * 1000;
     const [isDraftRestored, setIsDraftRestored] = useState(false);
+    const [assigneeRules, setAssigneeRules] = useState(null);
+
+    useEffect(() => {
+        if (isCreateModalOpen) {
+            fetchAssigneeRules().then(rules => setAssigneeRules(rules));
+        }
+    }, [isCreateModalOpen]);
 
     // Cargar borrador al abrir el modal
     useEffect(() => {
@@ -654,7 +662,7 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                     additional_info: ticketAdditionalInfo.trim(),
                     form_data: stepSpecificData,
                     attachments: [],
-                    assigned_to: determineAssignee(requestType, stepSpecificData)
+                    assigned_to: determineAssigneeWithRules(requestType, stepSpecificData, assigneeRules)
                 })
                 .select()
                 .single();
