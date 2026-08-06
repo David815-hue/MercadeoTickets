@@ -29,11 +29,14 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
     const [expandedTicketId, setExpandedTicketId] = useState(null);
     const [dbStatus, setDbStatus] = useState(null);
     const [viewType, setViewType] = useState(() => {
-        return localStorage.getItem('admin_view_type') || 'list';
+        const saved = localStorage.getItem('admin_view_type');
+        return (saved && saved !== 'users') ? saved : 'list';
     });
 
     useEffect(() => {
-        localStorage.setItem('admin_view_type', viewType);
+        if (viewType !== 'users') {
+            localStorage.setItem('admin_view_type', viewType);
+        }
     }, [viewType]);
     const [selectedDetailTicket, setSelectedDetailTicket] = useState(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
