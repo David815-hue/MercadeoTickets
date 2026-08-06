@@ -13,6 +13,7 @@ import SlaProgressBar from './SlaProgressBar';
 import AuditLogModal from './AuditLogModal';
 import CreateTicketModal from './CreateTicketModal';
 import { getPharmacyDisplayName } from '../utils/pharmacyMap';
+import StickyNotesManager from './StickyNotesManager';
 
 
 
@@ -1264,6 +1265,38 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                     <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{activeTicket.description}</p>
                                                 </div>
                                             )}
+
+                                            {/* Módulo de Notas Administración en Vista de Trabajo */}
+                                            <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
+                                                <StickyNotesManager 
+                                                    notes={(() => {
+                                                        if (!activeTicket.admin_notes) return [];
+                                                        try {
+                                                            return typeof activeTicket.admin_notes === 'string' ? JSON.parse(activeTicket.admin_notes) : activeTicket.admin_notes;
+                                                        } catch (e) {
+                                                            return [];
+                                                        }
+                                                    })()} 
+                                                    onSaveNotes={async (updatedNotes) => {
+                                                        try {
+                                                            const strNotes = JSON.stringify(updatedNotes);
+                                                            const { error } = await supabase
+                                                                .from('tickets')
+                                                                .update({ admin_notes: strNotes })
+                                                                .eq('id', activeTicket.id);
+                                                            if (!error) {
+                                                                setActiveTicket(prev => ({ ...prev, admin_notes: strNotes }));
+                                                                setTickets(prev => prev.map(t => t.id === activeTicket.id ? { ...t, admin_notes: strNotes } : t));
+                                                            } else {
+                                                                toast.error('No se pudieron guardar las notas');
+                                                            }
+                                                        } catch (err) {
+                                                            console.error('Error guardando notas:', err);
+                                                        }
+                                                    }} 
+                                                    isAdmin={true}
+                                                />
+                                            </div>
                                         </div>
                                     </>
                                 )}
@@ -1603,15 +1636,45 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                                           </button>
                                                       </div>
                                                   </div>
+                                                  {ticket.request_type ? (
+                                                      renderStructuredDetails(ticket)
+                                                  ) : (
+                                                      <div className="detail-description-box" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
+                                                          <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Descripción</h5>
+                                                          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
+                                                      </div>
+                                                  )}
 
-                                                 {ticket.request_type ? (
-                                                     renderStructuredDetails(ticket)
-                                                 ) : (
-                                                     <div className="detail-description-box" style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px' }}>
-                                                         <h5 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Descripción</h5>
-                                                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
-                                                     </div>
-                                                 )}
+                                                  {/* Módulo de Notas Administración en Vista de Lista */}
+                                                  <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }} onClick={(e) => e.stopPropagation()}>
+                                                      <StickyNotesManager 
+                                                          notes={(() => {
+                                                              if (!ticket.admin_notes) return [];
+                                                              try {
+                                                                  return typeof ticket.admin_notes === 'string' ? JSON.parse(ticket.admin_notes) : ticket.admin_notes;
+                                                              } catch (e) {
+                                                                  return [];
+                                                              }
+                                                          })()} 
+                                                          onSaveNotes={async (updatedNotes) => {
+                                                              try {
+                                                                  const strNotes = JSON.stringify(updatedNotes);
+                                                                  const { error } = await supabase
+                                                                      .from('tickets')
+                                                                      .update({ admin_notes: strNotes })
+                                                                      .eq('id', ticket.id);
+                                                                  if (!error) {
+                                                                      setTickets(prev => prev.map(t => t.id === ticket.id ? { ...t, admin_notes: strNotes } : t));
+                                                                  } else {
+                                                                      toast.error('No se pudieron guardar las notas');
+                                                                  }
+                                                              } catch (err) {
+                                                                  console.error('Error guardando notas:', err);
+                                                              }
+                                                          }} 
+                                                          isAdmin={true}
+                                                      />
+                                                  </div>
                                              </div>
                                         )}
                                     </div>
@@ -1949,6 +2012,47 @@ export default function AdminDashboard({ currentUser, onLogout, currentTheme, on
                                     <p>{selectedDetailTicket.description}</p>
                                 </div>
                             )}
+
+                            {/* Módulo de Notas Administración */}
+                            <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+                                <StickyNotesManager
+                                    notes={(() => {
+                                        if (!selectedDetailTicket.admin_notes) return [];
+                                        try {
+                                            return typeof selectedDetailTicket.admin_notes === 'string' 
+                                                ? JSON.parse(selectedDetailTicket.admin_notes) 
+                                                : selectedDetailTicket.admin_notes;
+                                        } catch (e) {
+                                            return [];
+                                        }
+                                    })()}
+                                    onSaveNotes={async (updatedNotes) => {
+                                        try {
+                                            const { error } = await supabase
+                                                .from('tickets')
+                                                .update({ admin_notes: JSON.stringify(updatedNotes) })
+                                                .eq('id', selectedDetailTicket.id);
+                                            
+                                            if (!error) {
+                                                setSelectedDetailTicket(prev => ({
+                                                    ...prev,
+                                                    admin_notes: JSON.stringify(updatedNotes)
+                                                }));
+                                                setTickets(prev => prev.map(t => 
+                                                    t.id === selectedDetailTicket.id 
+                                                        ? { ...t, admin_notes: JSON.stringify(updatedNotes) } 
+                                                        : t
+                                                ));
+                                            } else {
+                                                toast.error('No se pudieron guardar las notas');
+                                            }
+                                        } catch (err) {
+                                            console.error('Error guardando notas:', err);
+                                        }
+                                    }}
+                                    isAdmin={true}
+                                />
+                            </div>
 
                             <div className="detail-modal-footer">
                                 <button className="btn btn-secondary" onClick={() => setIsDetailModalOpen(false)}>Cerrar</button>
