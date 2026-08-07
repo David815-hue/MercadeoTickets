@@ -71,38 +71,25 @@ USING (
     (auth.jwt() ->> 'email') LIKE '%@system.com'
 );
 
--- POLÍTICAS PARA TICKETS
 CREATE POLICY "Ver tickets" 
 ON public.tickets FOR SELECT 
+TO authenticated 
 USING (
     user_id = auth.uid() OR 
-    (auth.jwt() ->> 'email') LIKE '%@system.com'
+    (auth.jwt() ->> 'email') LIKE '%@system.com' OR
+    auth.role() = 'authenticated'
 );
 
 CREATE POLICY "Crear tickets" 
 ON public.tickets FOR INSERT 
-WITH CHECK (
-    user_id = auth.uid() OR
-    (auth.jwt() ->> 'email') LIKE '%@system.com'
-);
+TO authenticated 
+WITH CHECK (true);
 
 CREATE POLICY "Actualizar tickets" 
 ON public.tickets FOR UPDATE 
-USING (
-    (auth.jwt() ->> 'email') LIKE '%@system.com'
-)
-WITH CHECK (
-    (auth.jwt() ->> 'email') LIKE '%@system.com'
-);
-
-CREATE POLICY "Actualizar tickets propios (farmacia)" 
-ON public.tickets FOR UPDATE 
-USING (
-    user_id = auth.uid() AND (auth.jwt() ->> 'email') NOT LIKE '%@system.com' AND status = 'Recibido'
-)
-WITH CHECK (
-    user_id = auth.uid() AND (auth.jwt() ->> 'email') NOT LIKE '%@system.com' AND status = 'Recibido'
-);
+TO authenticated 
+USING (true)
+WITH CHECK (true);
 
 -- POLÍTICAS PARA MENSAJES (CHAT)
 CREATE POLICY "Ver mensajes" 

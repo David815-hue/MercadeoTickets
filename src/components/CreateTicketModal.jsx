@@ -393,10 +393,13 @@ export default function CreateTicketModal({ isOpen, onClose, currentUser, onTick
                 ? (selectedPharmacy || 'MERCADEO')
                 : currentUser.username;
 
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            const validUserId = authUser?.id || currentUser.id;
+
             const { data: ticket, error: ticketError } = await supabase
                 .from('tickets')
                 .insert({
-                    user_id: currentUser.id,
+                    user_id: validUserId,
                     pharmacy_name: targetPharmacy,
                     description: ticketObjective.trim(),
                     requester_role: requesterRole,
