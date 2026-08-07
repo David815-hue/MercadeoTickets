@@ -7,17 +7,13 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL_KEY = 'ticket_system_supabase_url';
 const SUPABASE_ANON_KEY_KEY = 'ticket_system_supabase_anon_key';
 
-// Credenciales por defecto para entornos desplegados (Vercel, Netlify, etc.)
-const HARDCODED_URL = 'https://twfzmahhybxzphswendg.supabase.co';
-const HARDCODED_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3ZnptYWhoeWJ4enBoc3dlbmRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjcyMjIsImV4cCI6MjA5Njg0MzIyMn0.LRbxnKpsp7NxAJW_dXhoiDI8jQUz3WD5p2U_XPWvzrU';
-
-// Rellenar desde .env si existe en Vite, o usar fallback directo
-const ENV_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || HARDCODED_URL;
-const ENV_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || HARDCODED_ANON_KEY;
+// Leer variables de entorno (Vercel / Vite .env)
+const ENV_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const ENV_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export const getSupabaseConfig = () => {
-    const url = ENV_SUPABASE_URL || localStorage.getItem(SUPABASE_URL_KEY) || HARDCODED_URL;
-    const key = ENV_SUPABASE_ANON_KEY || localStorage.getItem(SUPABASE_ANON_KEY_KEY) || HARDCODED_ANON_KEY;
+    const url = ENV_SUPABASE_URL || localStorage.getItem(SUPABASE_URL_KEY) || '';
+    const key = ENV_SUPABASE_ANON_KEY || localStorage.getItem(SUPABASE_ANON_KEY_KEY) || '';
     return { url, key };
 };
 
