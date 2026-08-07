@@ -27,17 +27,26 @@ export default function App() {
         setHasConfig(configured);
 
         if (configured) {
-            // 2. Comprobar sesión guardada localmente
-            const savedSession = localStorage.getItem('ticket_system_session');
-            if (savedSession) {
-                try {
-                    setCurrentUser(JSON.parse(savedSession));
-                } catch (e) {
-                    localStorage.removeItem('ticket_system_session');
+            const CURRENT_SESSION_VERSION = 'v2.1_rls_fix';
+            const savedVersion = localStorage.getItem('ticket_system_version');
+
+            // Si la versión de sesión guardada es obsoleta, purgar localStorage automáticamente
+            if (savedVersion !== CURRENT_SESSION_VERSION) {
+                localStorage.removeItem('ticket_system_session');
+                localStorage.setItem('ticket_system_version', CURRENT_SESSION_VERSION);
+                setCurrentUser(null);
+            } else {
+                const savedSession = localStorage.getItem('ticket_system_session');
+                if (savedSession) {
+                    try {
+                        setCurrentUser(JSON.parse(savedSession));
+                    } catch (e) {
+                        localStorage.removeItem('ticket_system_session');
+                    }
                 }
             }
 
-            // 3. Sincronizar sesión activa de Supabase Auth
+            // 3. Sincronizar y validar sesión activa de Supabase Auth
             supabase.auth.getSession().then(({ data: { session } }) => {
                 if (session) {
                     supabase
@@ -54,8 +63,13 @@ export default function App() {
                                 };
                                 setCurrentUser(userObj);
                                 localStorage.setItem('ticket_system_session', JSON.stringify(userObj));
+                                localStorage.setItem('ticket_system_version', CURRENT_SESSION_VERSION);
                             }
                         });
+                } else {
+                    // Si no hay sesión válida activa en Supabase Auth, purgar automáticamente
+                    localStorage.removeItem('ticket_system_session');
+                    setCurrentUser(null);
                 }
             });
         }
@@ -65,6 +79,7 @@ export default function App() {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const handleLoginSuccess = (user) => {
+        localStorage.setItem('ticket_system_version', 'v2.1_rls_fix');
         localStorage.setItem('ticket_system_session', JSON.stringify(user));
         setCurrentUser(user);
     };
