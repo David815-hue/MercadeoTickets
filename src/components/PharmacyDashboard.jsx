@@ -1914,70 +1914,214 @@ export default function PharmacyDashboard({ currentUser, onLogout, currentTheme,
                                         </>
                                     )}
 
-                                    {/* Zona de Carga de Archivos */}
-                                    {requestType !== 'Activaciones/Eventos/Insumos/Utileria' && 
-                                     requestType !== 'Rotulación Interna' && 
-                                     requestType !== 'Material para impresión' && (
-                                        <div className="input-group" style={{ marginTop: '20px' }}>
-                                            <label>Adjuntar logos, imágenes o archivos necesarios (Opcional)</label>
-                                            <div 
-                                                className="wizard-file-dropzone"
-                                                onDragOver={handleDragOver}
-                                                onDrop={handleDrop}
-                                                onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                                            >
-                                                <i className="fa-solid fa-cloud-arrow-up"></i>
-                                                <h5>Arrastra y suelta tus archivos aquí</h5>
-                                                <p>o haz clic para buscar en tu dispositivo</p>
-                                                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                                    {requestType === 'Recetarios Médicos' 
-                                                        ? 'Límite: 1 archivo, Máx 10MB' 
-                                                        : 'Límite: 3 archivos, Máx 5MB por archivo'}
-                                                </p>
-                                            </div>
-                                            <input 
-                                                type="file"
-                                                ref={fileInputRef}
-                                                onChange={handleFileSelect}
-                                                multiple={requestType !== 'Recetarios Médicos'}
-                                                style={{ display: 'none' }}
-                                            />
-                                            
-                                            {selectedFiles.length > 0 && (
-                                                <div className="wizard-file-list">
-                                                    {selectedFiles.map((file, idx) => (
-                                                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                                                            <div className="wizard-file-item">
-                                                                <div className="wizard-file-info">
-                                                                    <i className={getFileIcon(file.name)}></i>
-                                                                    <div className="wizard-file-meta">
-                                                                        <span className="wizard-file-name">{file.name}</span>
-                                                                        <span className="wizard-file-size">{formatBytes(file.size)}</span>
-                                                                    </div>
-                                                                </div>
-                                                                <button 
-                                                                    type="button" 
-                                                                    className="btn-remove-file"
-                                                                    onClick={() => removeFile(idx)}
-                                                                    disabled={isSubmitting}
-                                                                >
-                                                                    <i className="fa-solid fa-trash-can"></i>
-                                                                </button>
-                                                            </div>
-                                                            {fileUploadProgresses[file.name] !== undefined && (
-                                                                <div className="file-upload-progress-container">
-                                                                    <div 
-                                                                        className="file-upload-progress-bar" 
-                                                                        style={{ width: `${fileUploadProgresses[file.name]}%` }}
-                                                                    ></div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
+                                     {/* Zona de Carga de Archivos */}
+                                     {requestType !== 'Activaciones/Eventos/Insumos/Utileria' && 
+                                      requestType !== 'Rotulación Interna' && 
+                                      requestType !== 'Material para impresión' && (
+                                         <div className="input-group" style={{ marginTop: '20px' }}>
+                                             <label>Adjuntar logos, imágenes o archivos necesarios (Opcional)</label>
+                                             <div 
+                                                 className="file-drop-zone"
+                                                 onDragOver={handleDragOver}
+                                                 onDrop={handleDrop}
+                                                 onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                                                 style={{
+                                                     border: '2px dashed rgba(99, 102, 241, 0.35)',
+                                                     borderRadius: '16px',
+                                                     padding: '24px 16px',
+                                                     textAlign: 'center',
+                                                     background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.03), rgba(168, 85, 247, 0.03))',
+                                                     cursor: 'pointer',
+                                                     transition: 'all 0.2s ease',
+                                                     boxShadow: 'inset 0 0 12px rgba(99, 102, 241, 0.02)'
+                                                 }}
+                                             >
+                                                 <div 
+                                                     style={{
+                                                         width: '48px',
+                                                         height: '48px',
+                                                         borderRadius: '50%',
+                                                         background: 'rgba(99, 102, 241, 0.12)',
+                                                         color: 'var(--color-primary)',
+                                                         display: 'flex',
+                                                         alignItems: 'center',
+                                                         justifyContent: 'center',
+                                                         margin: '0 auto 10px auto',
+                                                         fontSize: '1.3rem',
+                                                         boxShadow: '0 4px 12px rgba(99, 102, 241, 0.15)'
+                                                     }}
+                                                 >
+                                                     <i className="fa-solid fa-cloud-arrow-up"></i>
+                                                 </div>
+                                                 <p style={{ margin: '0 0 4px 0', fontSize: '0.92rem', fontWeight: '700', color: 'var(--text-main)' }}>
+                                                     Arrastra tus imágenes o archivos aquí
+                                                 </p>
+                                                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                                     {requestType === 'Recetarios Médicos' 
+                                                         ? 'Límite: 1 archivo, Máx 10MB' 
+                                                         : 'Límite: 3 archivos, Máx 5MB por archivo'}
+                                                 </span>
+                                             </div>
+                                             <input 
+                                                 type="file"
+                                                 ref={fileInputRef}
+                                                 onChange={handleFileSelect}
+                                                 multiple={requestType !== 'Recetarios Médicos'}
+                                                 style={{ display: 'none' }}
+                                             />
+                                             
+                                             {selectedFiles.length > 0 && (
+                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
+                                                     {selectedFiles.map((file, idx) => {
+                                                         const isImage = file.type?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(file.name);
+                                                         const isPdf = file.type?.includes('pdf') || /\.pdf$/i.test(file.name);
+                                                         const isDoc = /\.doc|\.docx|\.txt$/i.test(file.name);
+                                                         const previewUrl = isImage ? URL.createObjectURL(file) : null;
+                                                         const progress = fileUploadProgresses[file.name];
+
+                                                         return (
+                                                             <div 
+                                                                 key={idx} 
+                                                                 style={{
+                                                                     display: 'flex',
+                                                                     alignItems: 'center',
+                                                                     justifyContent: 'space-between',
+                                                                     padding: '10px 14px',
+                                                                     background: 'var(--bg-secondary)',
+                                                                     border: '1px solid var(--border-color)',
+                                                                     borderRadius: '14px',
+                                                                     gap: '12px',
+                                                                     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+                                                                     transition: 'all 0.2s ease',
+                                                                     overflow: 'hidden'
+                                                                 }}
+                                                             >
+                                                                 {/* Miniatura / Icono */}
+                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: 1 }}>
+                                                                     {isImage && previewUrl ? (
+                                                                         <img 
+                                                                             src={previewUrl} 
+                                                                             alt={file.name}
+                                                                             style={{
+                                                                                 width: '44px',
+                                                                                 height: '44px',
+                                                                                 borderRadius: '10px',
+                                                                                 objectFit: 'cover',
+                                                                                 border: '1px solid var(--border-color)',
+                                                                                 flexShrink: 0,
+                                                                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                                                             }}
+                                                                         />
+                                                                     ) : (
+                                                                         <div 
+                                                                             style={{
+                                                                                 width: '44px',
+                                                                                 height: '44px',
+                                                                                 borderRadius: '10px',
+                                                                                 background: isPdf 
+                                                                                     ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                                                                                     : isDoc 
+                                                                                         ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
+                                                                                         : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                                                                 color: '#fff',
+                                                                                 display: 'flex',
+                                                                                 alignItems: 'center',
+                                                                                 justifyContent: 'center',
+                                                                                 fontSize: '1.15rem',
+                                                                                 flexShrink: 0,
+                                                                                 boxShadow: '0 3px 10px rgba(0,0,0,0.12)'
+                                                                             }}
+                                                                         >
+                                                                             <i className={isPdf ? 'fa-solid fa-file-pdf' : isDoc ? 'fa-solid fa-file-word' : 'fa-solid fa-file'}></i>
+                                                                         </div>
+                                                                     )}
+
+                                                                     {/* Nombre y Detalles */}
+                                                                     <div style={{ minWidth: 0, flex: 1 }}>
+                                                                         <span 
+                                                                             title={file.name}
+                                                                             style={{ 
+                                                                                 fontWeight: '700', 
+                                                                                 fontSize: '0.86rem', 
+                                                                                 color: 'var(--text-main)', 
+                                                                                 display: 'block',
+                                                                                 whiteSpace: 'nowrap',
+                                                                                 overflow: 'hidden',
+                                                                                 textOverflow: 'ellipsis'
+                                                                             }}
+                                                                         >
+                                                                             {file.name}
+                                                                         </span>
+                                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
+                                                                             <span 
+                                                                                 style={{
+                                                                                     fontSize: '0.72rem',
+                                                                                     fontWeight: '600',
+                                                                                     padding: '2px 7px',
+                                                                                     borderRadius: '6px',
+                                                                                     background: 'var(--bg-card)',
+                                                                                     color: 'var(--text-muted)',
+                                                                                     border: '1px solid var(--border-color)'
+                                                                                 }}
+                                                                             >
+                                                                                 {(file.size / 1024 / 1024).toFixed(2)} MB
+                                                                             </span>
+                                                                             <span 
+                                                                                 style={{
+                                                                                     fontSize: '0.72rem',
+                                                                                     fontWeight: '700',
+                                                                                     padding: '2px 7px',
+                                                                                     borderRadius: '6px',
+                                                                                     background: isImage ? 'rgba(16, 185, 129, 0.12)' : 'rgba(99, 102, 241, 0.12)',
+                                                                                     color: isImage ? '#10b981' : 'var(--color-primary)'
+                                                                                 }}
+                                                                             >
+                                                                                 {file.name.split('.').pop()?.toUpperCase() || 'FILE'}
+                                                                             </span>
+                                                                         </div>
+                                                                     </div>
+                                                                 </div>
+
+                                                                 {/* Botón de Borrado / Progreso */}
+                                                                 {progress !== undefined && isSubmitting ? (
+                                                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', width: '70px', flexShrink: 0 }}>
+                                                                         <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--color-primary)' }}>{progress}%</span>
+                                                                         <div style={{ width: '100%', height: '4px', background: 'var(--border-color)', borderRadius: '2px', overflow: 'hidden', marginTop: '4px' }}>
+                                                                             <div style={{ width: `${progress}%`, height: '100%', background: 'var(--color-primary)', transition: 'width 0.2s' }}></div>
+                                                                         </div>
+                                                                     </div>
+                                                                 ) : (
+                                                                     <button 
+                                                                         type="button"
+                                                                         onClick={() => removeFile(idx)}
+                                                                         disabled={isSubmitting}
+                                                                         title="Eliminar archivo"
+                                                                         style={{
+                                                                             width: '34px',
+                                                                             height: '34px',
+                                                                             borderRadius: '50%',
+                                                                             background: 'rgba(239, 68, 68, 0.1)',
+                                                                             border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                                             color: '#ef4444',
+                                                                             display: 'flex',
+                                                                             alignItems: 'center',
+                                                                             justifyContent: 'center',
+                                                                             cursor: 'pointer',
+                                                                             fontSize: '0.84rem',
+                                                                             flexShrink: 0,
+                                                                             transition: 'all 0.2s ease'
+                                                                         }}
+                                                                     >
+                                                                         <i className="fa-solid fa-trash-can"></i>
+                                                                     </button>
+                                                                 )}
+                                                             </div>
+                                                         );
+                                                     })}
+                                                 </div>
+                                             )}
+                                         </div>
+                                     )}
 
                                     {/* Botones de navegación del paso 2 */}
                                     <div className="flex-row justify-between" style={{ marginTop: '24px' }}>
